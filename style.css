@@ -1,0 +1,60 @@
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: linear-gradient(180deg, #0f2a44, #123b63);
+  color: white;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  gap: 20px;
+}
+
+.logo {
+  height: 60px;
+}
+
+.today-tomorrow {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+
+.day-block {
+  flex: 1;
+  background: rgba(255,255,255,0.1);
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.weekly, .monthly {
+  padding: 20px;
+}
+
+.week-grid, .month-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.notes {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+
+.notes-block {
+  flex: 1;
+  background: rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.notes-block iframe {
+  width: 100%;
+  height: 300px;
+  border: none;
+  background: white;
+}
