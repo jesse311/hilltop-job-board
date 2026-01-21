@@ -41,15 +41,29 @@
         <div id="month-grid" class="month-grid"><p>(waiting…)</p></div>
       </section>
 
-      <section class="notes">
-        <div class="notes-block">
-          <h2>Install Notes</h2>
-          <iframe src="https://docs.google.com/document/d/e/2PACX-1vQ9kNiSVt4m74h7nKlwzE5wD2z421mtJV_HqjR1plc5-i_iOv7uDH3LDxGspYopFdf3PnMDn0b25OoR/pub"></iframe>
+      <!-- TICKERS (replaces the big Notes boxes)
+           JS will fill #ticker-master-text and #ticker-install-text -->
+      <section class="tickers" aria-label="Bottom tickers">
+        <div class="ticker-lane" id="ticker-master" data-doc="master">
+          <div class="ticker-label">HILLTOP MASTER</div>
+          <div class="ticker-window">
+            <div class="ticker-track">
+              <div class="ticker-text" id="ticker-master-text">
+                Loading Hilltop Master notes…
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="notes-block">
-          <h2>Hilltop Notes</h2>
-          <iframe src="https://docs.google.com/document/d/e/2PACX-1vSEfFYL0rCoTtAznGQSexXQTUZgUEBpdXdG6SHTD3KOdAQSlCQR4wo5JkwoIpQGj4wY9df3s6Ahu0Eg/pub"></iframe>
+        <div class="ticker-lane" id="ticker-install" data-doc="install">
+          <div class="ticker-label">INSTALL NOTES</div>
+          <div class="ticker-window">
+            <div class="ticker-track">
+              <div class="ticker-text" id="ticker-install-text">
+                Loading Install notes…
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
