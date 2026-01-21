@@ -2,21 +2,19 @@
 :root{
   --pad: 18px;
   --gap: 18px;
-
   --h1: 38px;
   --h2: 24px;
   --text: 16px;
 }
-
 *{ box-sizing: border-box; }
 
 /* The outer stage: centers the portrait canvas on any screen */
 body{
   margin:0;
   font-family: Arial, Helvetica, sans-serif;
-  background: #0b1e33;          /* laptop preview background */
+  background: #0b1e33; /* laptop preview background */
   color:#fff;
-  overflow:hidden;              /* signage mode */
+  overflow:hidden; /* signage mode */
 }
 
 /* Centers the sign canvas */
@@ -32,13 +30,11 @@ body{
 .dashboard{
   width: min(100vw, calc(100vh * (9 / 16)));
   height: min(100vh, calc(100vw * (16 / 9)));
-
   /* Your actual board styling lives in here */
   padding: var(--pad);
   background: linear-gradient(180deg, #0f2a44, #123b63);
   font-size: var(--text);
   overflow:hidden;
-
   display:flex;
   flex-direction: column;
 }
@@ -51,10 +47,7 @@ body{
   margin-bottom: 10px;
 }
 .logo{ height: 60px; }
-.header h1{
-  margin:0;
-  font-size: var(--h1);
-}
+.header h1{ margin:0; font-size: var(--h1); }
 
 /* Status line */
 #status{
@@ -80,9 +73,9 @@ h2{
 /* ===== Layout sizing inside the portrait canvas ===== */
 /* We give each section a share of the vertical height */
 .today-tomorrow{ flex: 0 0 20%; }
-.weekly{         flex: 0 0 18%; }
-.monthly{        flex: 0 0 30%; }
-.notes{          flex: 1 1 auto; } /* takes the remaining space */
+.weekly{ flex: 0 0 18%; }
+.monthly{ flex: 0 0 30%; }
+.notes{ flex: 1 1 auto; } /* takes the remaining space */
 
 /* Today/Tomorrow */
 .today-tomorrow{
@@ -98,7 +91,6 @@ h2{
   margin-bottom: var(--gap);
   overflow:hidden;
 }
-
 .week-grid{
   width: 100%;
   height: calc(100% - 34px); /* leaves room for the h2 */
@@ -114,7 +106,6 @@ h2{
   background: rgba(255,255,255,0.08);
   min-height: 0;
 }
-
 .wk-head{
   display:flex;
   justify-content: space-between;
@@ -123,7 +114,6 @@ h2{
   opacity:.95;
   font-size: 14px;
 }
-
 .wk-body{
   font-size: 13px;
   line-height: 1.2;
@@ -137,7 +127,6 @@ h2{
   margin-bottom: var(--gap);
   overflow:hidden;
 }
-
 .month-grid{
   width:100%;
   height: calc(100% - 34px); /* leaves room for the h2 */
@@ -147,7 +136,6 @@ h2{
   justify-content: stretch;
   align-items: stretch;
 }
-
 .m-cell{
   border-radius: 12px;
   padding: 8px;
@@ -156,7 +144,6 @@ h2{
   overflow:hidden;
 }
 .m-empty{ background: transparent; }
-
 .m-day{
   font-weight:800;
   margin-bottom: 4px;
@@ -168,13 +155,11 @@ h2{
   line-height: 1.1;
 }
 .m-item{
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
 }
-.m-today{
-  outline: 2px solid rgba(255,255,255,0.35);
-}
+.m-today{ outline: 2px solid rgba(255,255,255,0.35); }
 
 /* Notes */
 .notes{
@@ -184,14 +169,12 @@ h2{
   gap: var(--gap);
   overflow:hidden;
 }
-
 .notes-block{
   display:flex;
   flex-direction: column;
   gap: 10px;
   overflow:hidden;
 }
-
 .notes-block iframe{
   width:100%;
   flex:1;
@@ -199,4 +182,17 @@ h2{
   background:#fff;
   border-radius: 10px;
   min-height: 0;
+}
+
+/* ===== Auto-fit helpers (NO CUTOFFS) ===== */
+.fit-box{
+  overflow:hidden;
+  min-height:0;
+  min-width:0;
+}
+.fit-text{
+  display:block;
+  line-height:1.15;
+  word-break:break-word;
+  overflow-wrap:anywhere;
 }
