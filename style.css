@@ -30,7 +30,6 @@ body{
 .dashboard{
   width: min(100vw, calc(100vh * (9 / 16)));
   height: min(100vh, calc(100vw * (16 / 9)));
-  /* Your actual board styling lives in here */
   padding: var(--pad);
   background: linear-gradient(180deg, #0f2a44, #123b63);
   font-size: var(--text);
@@ -63,7 +62,7 @@ h2{
 }
 
 /* Shared panel look */
-.day-block, .wk-card, .notes-block{
+.day-block, .wk-card{
   background: rgba(255,255,255,0.10);
   border-radius: 14px;
   padding: 16px;
@@ -74,8 +73,8 @@ h2{
 /* We give each section a share of the vertical height */
 .today-tomorrow{ flex: 0 0 20%; }
 .weekly{ flex: 0 0 18%; }
-.monthly{ flex: 0 0 30%; }
-.notes{ flex: 1 1 auto; } /* takes the remaining space */
+.monthly{ flex: 1 1 auto; } /* month can take remaining space now */
+.tickers{ flex: 0 0 auto; }  /* always stays its own height at bottom */
 
 /* Today/Tomorrow */
 .today-tomorrow{
@@ -161,29 +160,6 @@ h2{
 }
 .m-today{ outline: 2px solid rgba(255,255,255,0.35); }
 
-/* Notes */
-.notes{
-  width:100%;
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--gap);
-  overflow:hidden;
-}
-.notes-block{
-  display:flex;
-  flex-direction: column;
-  gap: 10px;
-  overflow:hidden;
-}
-.notes-block iframe{
-  width:100%;
-  flex:1;
-  border:none;
-  background:#fff;
-  border-radius: 10px;
-  min-height: 0;
-}
-
 /* ===== Auto-fit helpers (NO CUTOFFS) ===== */
 .fit-box{
   overflow:hidden;
@@ -195,4 +171,62 @@ h2{
   line-height:1.15;
   word-break:break-word;
   overflow-wrap:anywhere;
+}
+
+/* =========================================================
+   TICKERS (BOTTOM OF SCREEN)
+   Two lanes, always visible, no user scrolling.
+   JS will feed text into #ticker-master-text and #ticker-install-text
+   ========================================================= */
+
+.tickers{
+  margin-top: 10px;
+  display:flex;
+  flex-direction: column;
+  gap: 10px;
+  /* Ticker block height stays consistent */
+  padding-top: 6px;
+}
+
+.ticker-lane{
+  display:grid;
+  grid-template-columns: 210px 1fr;
+  align-items:center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: rgba(0,0,0,0.25);
+  overflow:hidden;
+  min-height: 56px;
+}
+
+.ticker-label{
+  font-weight: 900;
+  letter-spacing: 0.6px;
+  font-size: 14px;
+  opacity: 0.95;
+  white-space: nowrap;
+}
+
+.ticker-window{
+  overflow:hidden;
+  white-space: nowrap;
+  position: relative;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.08);
+  padding: 10px 12px;
+}
+
+/* Track + text are what we’ll animate later with JS/CSS */
+.ticker-track{
+  display:inline-block;
+  will-change: transform;
+}
+
+.ticker-text{
+  display:inline-block;
+  font-weight: 800;
+  font-size: 16px;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
 }
