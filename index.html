@@ -14,17 +14,23 @@
     <h1>Hilltop Job Board</h1>
   </header>
 
+  <!-- DEBUG LINE: if JS is running, this WILL change -->
+  <div id="status" style="padding:10px 20px; font-weight:700; opacity:.95;">
+    Status: HTML loaded (waiting for JS…)
+  </div>
+
   <section class="today-tomorrow">
-    <div id="today" class="day-block"></div>
-    <div id="tomorrow" class="day-block"></div>
+    <!-- Put fallback text INSIDE so you can SEE the boxes even if JS fails -->
+    <div id="today" class="day-block"><h2>Today</h2><p>(waiting…)</p></div>
+    <div id="tomorrow" class="day-block"><h2>Tomorrow</h2><p>(waiting…)</p></div>
   </section>
 
   <section class="weekly">
-    <div id="week-grid" class="week-grid"></div>
+    <div id="week-grid" class="week-grid"><h2>This Week</h2><p>(waiting…)</p></div>
   </section>
 
   <section class="monthly">
-    <div id="month-grid" class="month-grid"></div>
+    <div id="month-grid" class="month-grid"><h2>This Month</h2><p>(waiting…)</p></div>
   </section>
 
   <section class="notes">
@@ -39,7 +45,7 @@
     </div>
   </section>
 
-  <!-- Cache-bust so the display ALWAYS pulls the latest JS after commits -->
-  <script src="app.js?v=7"></script>
+  <!-- cache-buster so you always get the newest JS -->
+  <script src="app.js?v=999"></script>
 </body>
 </html>
