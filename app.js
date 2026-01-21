@@ -5,37 +5,24 @@ const CONFIG = {
   proxyUrl:
     "https://script.google.com/macros/s/AKfycbxspDG4qJhwKLXdxxvAMrkXaIJyj4Fpbhju8cCZtkn9pHnPp4DgP660LeIdpJARw2lU/exec",
 
-  // How far ahead to include in the raw lists (we'll change this later for true week/month grids)
   weekDaysAhead: 7,
   monthDaysAhead: 31
 };
 
-function setLoading() {
-  const todayEl = document.getElementById("today");
-  const tomorrowEl = document.getElementById("tomorrow");
-  const weekEl = document.getElementById("week");
-  const monthEl = document.getElementById("month");
-
-  if (todayEl) todayEl.innerHTML = "<h2>Today</h2><p>Loading…</p>";
-  if (tomorrowEl) tomorrowEl.innerHTML = "<h2>Tomorrow</h2><p>Loading…</p>";
-  if (weekEl) weekEl.innerHTML = "<h2>This Week</h2><p>Loading…</p>";
-  if (monthEl) monthEl.innerHTML = "<h2>This Month</h2><p>Loading…</p>";
+// --- Helpers to find the right box even if IDs change ---
+function getBox(which) {
+  // support both old IDs and new IDs
+  if (which === "week") return document.getElementById("week") || document.getElementById("week-grid");
+  if (which === "month") return document.getElementById("month") || document.getElementById("month-grid");
+  return document.getElementById(which);
 }
 
-function setError(msg) {
-  const ids = ["today", "tomorrow", "week", "month"];
-  ids.forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = `<h2>${titleFor(id)}</h2><p style="opacity:.9;">${escapeHtml(msg)}</p>`;
-  });
-}
-
-function titleFor(id) {
-  if (id === "today") return "Today";
-  if (id === "tomorrow") return "Tomorrow";
-  if (id === "week") return "This Week";
-  if (id === "month") return "This Month";
-  return id;
+function titleFor(which) {
+  if (which === "today") return "Today";
+  if (which === "tomorrow") return "Tomorrow";
+  if (which === "week") return "This Week";
+  if (which === "month") return "This Month";
+  return which;
 }
 
 function escapeHtml(str) {
@@ -95,13 +82,30 @@ function renderEvent(ev) {
   `;
 }
 
-function renderSection(id, events) {
-  const el = document.getElementById(id);
+function setLoading() {
+  ["today", "tomorrow", "week", "month"].forEach((which) => {
+    const el = getBox(which);
+    if (!el) return;
+    el.innerHTML = `<h2>${titleFor(which)}</h2><p>Loading…</p>`;
+  });
+}
+
+function setError(which, msg) {
+  const el = getBox(which);
   if (!el) return;
+  el.innerHTML = `<h2>${titleFor(which)}</h2><p style="opacity:.9;">${escapeHtml(msg)}</p>`;
+}
 
-  const heading = `<h2>${titleFor(id)}</h2>`;
+function renderSection(which, events) {
+  const el = getBox(which);
+  if (!el) {
+    console.error(`[JobBoard] Missing HTML element for "${which}". Expected id="${which}" or id="${which}-grid".`);
+    return;
+  }
 
-  if (!events.length) {
+  const heading = `<h2>${titleFor(which)}</h2>`;
+
+  if (!events || !events.length) {
     el.innerHTML = heading + `<p style="opacity:.85;">No events.</p>`;
     return;
   }
@@ -110,8 +114,8 @@ function renderSection(id, events) {
 }
 
 async function loadCalendar() {
-  if (!CONFIG.proxyUrl || CONFIG.proxyUrl.includes("PASTE_YOUR_PROXY_EXEC_URL_HERE")) {
-    setError("Calendar proxy URL is not set in app.js (CONFIG.proxyUrl).");
+  if (!CONFIG.proxyUrl) {
+    ["today", "tomorrow", "week", "month"].forEach((w) => setError(w, "Calendar proxy URL is not set."));
     return;
   }
 
@@ -123,12 +127,12 @@ async function loadCalendar() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     data = await res.json();
   } catch (err) {
-    setError(`Could not load calendar (${err.message}).`);
+    ["today", "tomorrow", "week", "month"].forEach((w) => setError(w, `Could not load calendar (${err.message}).`));
     return;
   }
 
   if (!data || !Array.isArray(data.events)) {
-    setError("Calendar proxy returned unexpected data.");
+    ["today", "tomorrow", "week", "month"].forEach((w) => setError(w, "Calendar proxy returned unexpected data."));
     return;
   }
 
@@ -147,23 +151,5 @@ async function loadCalendar() {
   const weekEnd = new Date(today0.getTime() + CONFIG.weekDaysAhead * 24 * 60 * 60 * 1000);
   const monthEnd = new Date(today0.getTime() + CONFIG.monthDaysAhead * 24 * 60 * 60 * 1000);
 
-  // These are your original working sections
   const todayEvents = events.filter((ev) => sameDay(ev._start, today0));
-  const tomorrowEvents = events.filter((ev) => sameDay(ev._start, tomorrow0));
-
-  // Temporary lists (we’ll replace these with true grid rendering next)
-  const weekEvents = events.filter((ev) => ev._start >= today0 && ev._start < weekEnd);
-  const monthEvents = events.filter((ev) => ev._start >= today0 && ev._start < monthEnd);
-
-  // “Separate fuses” — if week/month rendering ever breaks, today/tomorrow still show
-  try { renderSection("today", todayEvents); } catch (e) {}
-  try { renderSection("tomorrow", tomorrowEvents); } catch (e) {}
-  try { renderSection("week", weekEvents); } catch (e) {}
-  try { renderSection("month", monthEvents); } catch (e) {}
-}
-
-document.addEventListener("DOMContentLoaded", () => {
-  setLoading();
-  loadCalendar();
-});
-
+  const tomorrowEvents = events.filter((ev) => sameDay(ev._start,_
