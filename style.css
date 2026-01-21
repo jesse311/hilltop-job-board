@@ -58,3 +58,82 @@ body {
   border: none;
   background: white;
 }
+/* WEEK GRID (5 cards) */
+.week-grid{
+  display:grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+.wk-card{
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(255,255,255,0.08);
+  min-height: 140px;
+  overflow: hidden;
+}
+
+.wk-head{
+  font-weight: 700;
+  margin-bottom: 8px;
+  display:flex;
+  justify-content: space-between;
+  opacity: .95;
+}
+
+.wk-body{ font-size: 0.9em; opacity: .95; }
+.wk-item{ margin-bottom: 6px; line-height: 1.2; }
+.wk-time{ opacity: .9; margin-right: 6px; }
+.wk-empty{ opacity: .6; }
+
+/* MONTH GRID (calendar) */
+.month-head{
+  display:flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.month-grid{
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.m-cell{
+  border-radius: 10px;
+  padding: 6px;
+  background: rgba(255,255,255,0.06);
+  min-height: 70px;
+  overflow: hidden;
+}
+
+.m-empty{ background: transparent; }
+
+.m-day{
+  font-weight: 700;
+  opacity: .95;
+  margin-bottom: 4px;
+  font-size: 0.9em;
+}
+
+.m-events{
+  font-size: 0.75em;
+  opacity: .95;
+}
+
+.m-item{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: .92;
+}
+
+.m-more{
+  opacity: .7;
+  margin-top: 2px;
+}
+
+.m-today{
+  outline: 2px solid rgba(255,255,255,0.35);
+}
