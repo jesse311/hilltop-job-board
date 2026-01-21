@@ -1,281 +1,98 @@
-/* ===== OH55A-S Portrait Job Board (NO dashboard wrapper) ===== */
-:root{
+/* ===== Clean Full-Width Layout for Job Board ===== */
+
+:root {
   --pad: clamp(12px, 1.2vh, 20px);
   --gap: clamp(12px, 1.2vh, 20px);
-
   --h1: clamp(24px, 3.2vh, 44px);
   --h2: clamp(18px, 2.4vh, 32px);
   --text: clamp(14px, 1.7vh, 22px);
 }
 
-*{ box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
-body{
-  margin:0;
+body {
+  margin: 0;
   font-family: Arial, Helvetica, sans-serif;
   background: linear-gradient(180deg, #0f2a44, #123b63);
-  color:#fff;
+  color: #fff;
   font-size: var(--text);
 
-  /* THIS IS THE KEY: body becomes the dashboard frame */
-  height: 100vh;
-  width: 100vw;
-  padding: var(--pad);
+  /* Make the body the full-page grid */
   display: grid;
-  grid-template-rows:
-    auto        /* header */
-    auto        /* status */
-    30vh        /* today/tomorrow */
-    22vh        /* week */
-    26vh        /* month */
-    1fr;        /* notes */
+  grid-template-rows: auto auto 1fr 1fr 1fr auto;
   gap: var(--gap);
-
-  overflow: hidden; /* NO SCROLL on signage */
-  justify-items: stretch;
-  align-items: stretch;
+  height: 100vh;
+  overflow: hidden;
 }
 
-/* Header */
-.header{
-  display:flex;
-  align-items:center;
+/* Header styling */
+.header {
+  display: flex;
+  align-items: center;
   gap: var(--gap);
-  padding: 0;
-  width: 100%;
 }
-.logo{ height: clamp(44px, 4.8vh, 72px); }
-.header h1{
-  margin:0;
+
+.logo {
+  height: clamp(44px, 4.8vh, 72px);
+}
+
+.header h1 {
+  margin: 0;
   font-size: var(--h1);
-  letter-spacing:.2px;
 }
 
-/* Status line */
-#status{
+/* Main sections as full-width blocks */
+.today-tomorrow, .weekly, .monthly, .notes {
   width: 100%;
-  font-weight: 700;
-  opacity: .92;
+  display: block;
 }
 
-/* Headings */
-h2{
-  margin: 0 0 .55em 0;
-  font-size: var(--h2);
-}
-
-/* Shared panel styling */
-.day-block, .wk-card, .notes-block{
-  background: rgba(255,255,255,0.10);
+.day-block, .wk-card, .notes-block {
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 14px;
   padding: var(--pad);
-  overflow: hidden;
 }
 
-/* ===== Today/Tomorrow ===== */
-.today-tomorrow{
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--gap);
-  height: 100%;
-  width: 100%;
-}
-
-.day-block{
-  height: 100%;
-  width: 100%;
-  line-height: 1.22;
-}
-
-/* Keep today/tomorrow text readable */
-.day-block .event,
-.day-block div{
-  font-size: clamp(13px, 1.55vh, 20px);
-}
-
-/* ===== Week ===== */
-.weekly{
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-}
-
-.week-grid{
-  width: 100%;
-  height: calc(100% - 2.4em); /* space for h2 */
+/* Today/Tomorrow side by side */
+.today-tomorrow {
   display: grid;
-
-  /* One row, 5 across */
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: var(--gap);
-
-  justify-content: start;
-  align-content: start;
-  justify-items: stretch;
-  align-items: stretch;
-
-  margin: 0;
-}
-
-.wk-card{
-  background: rgba(255,255,255,0.08);
-  height: 100%;
-  width: 100%;
-  min-width: 0;
-}
-
-.wk-head{
-  font-weight: 800;
-  margin-bottom: .5em;
-  display:flex;
-  justify-content: space-between;
-  opacity: .98;
-  font-size: clamp(13px, 1.5vh, 20px);
-}
-
-.wk-body{
-  font-size: clamp(12px, 1.35vh, 18px);
-  line-height: 1.18;
-}
-
-.wk-item{ margin-bottom: .35em; }
-.wk-time{ opacity:.9; margin-right:.35em; }
-.wk-empty{ opacity:.65; }
-
-/* ===== Month ===== */
-.monthly{
-  height: 100%;
-  width: 100%;
-  overflow: hidden;
-}
-
-.month-head{
-  display:flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--gap);
-  margin-bottom: .4em;
-}
-
-.month-grid{
-  width: 100%;
-  height: calc(100% - 3.0em); /* space for month header */
-  display:grid;
-
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: clamp(6px, 0.7vh, 12px);
-
-  justify-content: start;
-  align-content: start;
-  justify-items: stretch;
-  align-items: stretch;
-
-  margin: 0;
-}
-
-.m-cell{
-  border-radius: 12px;
-  padding: clamp(6px, 0.7vh, 12px);
-  background: rgba(255,255,255,0.06);
-  overflow: hidden;
-
-  width: 100%;
-  min-width: 0;
-}
-
-.m-empty{ background: transparent; }
-
-.m-day{
-  font-weight: 800;
-  opacity: .98;
-  margin-bottom: .2em;
-  font-size: clamp(11px, 1.2vh, 16px);
-}
-
-.m-events{
-  font-size: clamp(9px, 1.05vh, 14px);
-  line-height: 1.08;
-  opacity: .98;
-}
-
-.m-item{
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  opacity: .92;
-}
-
-.m-more{ opacity:.7; margin-top:.15em; }
-
-.m-today{
-  outline: 2px solid rgba(255,255,255,0.35);
-}
-
-/* ===== Notes ===== */
-.notes{
-  height: 100%;
-  width: 100%;
-  display:grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--gap);
-  overflow: hidden;
 }
 
-.notes-block{
-  height: 100%;
-  display:flex;
-  flex-direction: column;
-  gap: .5em;
+/* Week section: one row, 5 columns */
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--gap);
 }
 
-.notes-block iframe{
-  width:100%;
-  flex: 1;
-  border:none;
-  background:#fff;
+/* Month section: one row, 7 columns */
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--gap);
+}
+
+/* Notes section */
+.notes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+}
+
+/* Ensure iframes are full width */
+.notes-block iframe {
+  width: 100%;
+  height: 300px; /* Adjust as needed */
+  border: none;
+  background: #fff;
   border-radius: 10px;
 }
 
-/* Narrow fallback (mostly for laptop testing) */
-@media (max-width: 900px){
-  body{
-    grid-template-rows: auto auto auto auto auto 1fr;
-    overflow: auto; /* allow scroll on small screens */
-  }
-  .today-tomorrow{ grid-template-columns: 1fr; }
-  .notes{ grid-template-columns: 1fr; }
-  .week-grid{ grid-template-columns: 1fr; height: auto; }
-  .month-grid{ height: auto; }
+h2 {
+  margin: 0 0 0.5em 0;
+  font-size: var(--h2);
 }
-/* ===== FORCE ALL SECTIONS TO FULL WIDTH AND LEFT ALIGN ===== */
-
-/* Make every main section full width */
-.today-tomorrow, .weekly, .monthly, .notes {
-  width: 100% !important;
-  justify-content: flex-start !important;
-}
-
-.week-grid, .month-grid {
-  width: 100% !important;
-  margin: 0 !important;
-  justify-content: stretch !important;
-}
-
-.wk-card, .m-cell {
-  width: 100% !important;
-  min-width: 0 !important; /* Prevent any shrinking or centering issues */
-}
-
-/* Ensure headers don't block layout flow */
-.weekly h2, .monthly h2 {
-  margin-top: 0;
-  margin-bottom: 0.5em;
-}
-
-/* If needed, ensure the whole body acts as the main grid container */
-body {
-  display: grid;
-  grid-template-rows: auto auto auto auto auto auto; /* Each section in its own row */
-  gap: var(--gap);
-}
-
