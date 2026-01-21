@@ -1,5 +1,5 @@
 document.getElementById("status").textContent =
-  "Status: NEW WEEK/MONTH FORMAT SCRIPT LOADED ✅";
+  "Status: JOB BOARD + AUTO-FIT + TICKERS LOADED ✅";
 
 const CONFIG = {
   proxyUrl:
@@ -12,19 +12,15 @@ const CONFIG = {
 
   // Month view shows the current month grid
   monthMode: "current",
+
+  // How often to refresh tickers (ms)
+  tickerRefreshMs: 2 * 60 * 1000
 };
 
 function $(id) {
   return document.getElementById(id);
 }
 
-/**
- * Your HTML currently uses:
- *   #week-grid  (and/or #month-grid)
- * and sometimes older versions used:
- *   #week / #month
- * This helper returns whichever exists.
- */
 function getBox(which) {
   if (which === "week") return $("week") || $("week-grid");
   if (which === "month") return $("month") || $("month-grid");
@@ -74,23 +70,14 @@ function formatTimeRange(ev) {
   return `${s} – ${e}`;
 }
 
-/**
- * IMPORTANT LAYOUT FIX:
- * If a header <h2> is inside #week-grid or #month-grid,
- * it steals grid space (looks like a “giant left column”).
- * This function moves the header OUT to the parent <section>
- * so the grid can stretch full width.
- */
 function hoistHeaderOutOfGrid(gridEl, fallbackText) {
   if (!gridEl) return;
   const parent = gridEl.closest("section");
   if (!parent) return;
 
-  // If there is already a section-level h2, do nothing
   const sectionH2 = parent.querySelector(":scope > h2");
   if (sectionH2) return;
 
-  // If there is an h2 INSIDE the grid, move it out
   const innerH2 = gridEl.querySelector("h2");
   if (innerH2) {
     innerH2.remove();
@@ -98,7 +85,6 @@ function hoistHeaderOutOfGrid(gridEl, fallbackText) {
     return;
   }
 
-  // Otherwise create one
   const h2 = document.createElement("h2");
   h2.textContent = fallbackText || "";
   parent.insertBefore(h2, gridEl);
@@ -106,14 +92,13 @@ function hoistHeaderOutOfGrid(gridEl, fallbackText) {
 
 /* =========================================================
    TEXT AUTO-FIT (NO CUTOFFS)
-   - Each section is fitted independently:
+   - Each section fitted independently:
      .fit-today, .fit-tomorrow, .fit-week, .fit-month
-   - We shrink text until it fits inside its box.
    ========================================================= */
 
 function _fitsBox(box) {
-  // small fudge factor helps prevent “barely fits” clipping
-  const fudge = 1;
+  // 1–3px cushion helps prevent “zoom rounding” clipping
+  const fudge = 2;
   return (
     box.scrollHeight <= box.clientHeight + fudge &&
     box.scrollWidth <= box.clientWidth + fudge
@@ -127,13 +112,10 @@ function fitTextToBox(box, opts = {}) {
   const min = typeof opts.min === "number" ? opts.min : 6;
   const max = typeof opts.max === "number" ? opts.max : 24;
 
-  // Reset to max so we’re not stuck from previous run
   target.style.fontSize = max + "px";
 
-  // If it already fits at max, we’re done
   if (_fitsBox(box)) return;
 
-  // Binary-search the best size between min/max
   let lo = min;
   let hi = max;
 
@@ -155,7 +137,6 @@ function queueFitAll() {
   requestAnimationFrame(() => {
     _fitQueued = false;
 
-    // TODAY / TOMORROW (big “10-foot view”)
     document.querySelectorAll(".fit-today").forEach((box) =>
       fitTextToBox(box, { min: 8, max: 22 })
     );
@@ -163,12 +144,10 @@ function queueFitAll() {
       fitTextToBox(box, { min: 8, max: 22 })
     );
 
-    // WEEK (100-foot view)
     document.querySelectorAll(".fit-week").forEach((box) =>
       fitTextToBox(box, { min: 7, max: 13 })
     );
 
-    // MONTH (1000-foot view)
     document.querySelectorAll(".fit-month").forEach((box) =>
       fitTextToBox(box, { min: 6, max: 11 })
     );
@@ -206,15 +185,13 @@ function renderTodayTomorrow(which, events) {
     </div>`;
 }
 
-// ---------- WEEK (5 day cards) ----------
+// ---------- WEEK ----------
 function getWeekStart(now) {
   const d = startOfDay(now);
   if (CONFIG.weekMode === "next-5") return d;
 
-  // mon-fri mode:
-  // JS getDay(): Sun=0, Mon=1, ... Sat=6
   const day = d.getDay();
-  const diffToMon = day === 0 ? -6 : 1 - day; // Sunday -> go back 6
+  const diffToMon = day === 0 ? -6 : 1 - day;
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() + diffToMon);
 }
 
@@ -222,7 +199,6 @@ function renderWeek(events, now) {
   const gridEl = getBox("week");
   if (!gridEl) return;
 
-  // Make sure the Week header isn't trapped inside the grid
   hoistHeaderOutOfGrid(gridEl, "This Week");
 
   const weekStart = getWeekStart(now);
@@ -237,7 +213,6 @@ function renderWeek(events, now) {
     );
   }
 
-  // Group events by day
   const byDay = {};
   days.forEach((d) => {
     byDay[d.toDateString()] = [];
@@ -253,7 +228,6 @@ function renderWeek(events, now) {
     }
   });
 
-  // Build cards (NO extra wrapper div.week-grid)
   const cards = days
     .map((d) => {
       const label = d.toLocaleDateString([], { weekday: "short" });
@@ -283,27 +257,23 @@ function renderWeek(events, now) {
     })
     .join("");
 
-  // Put ONLY cards inside #week-grid (no header, no nested grid)
   gridEl.innerHTML = cards;
 }
 
-// ---------- MONTH (real calendar grid) ----------
+// ---------- MONTH ----------
 function renderMonth(events, now) {
   const gridEl = getBox("month");
   if (!gridEl) return;
 
-  // Make sure the Month header isn't trapped inside the grid
   hoistHeaderOutOfGrid(gridEl, "This Month");
 
   const first = new Date(now.getFullYear(), now.getMonth(), 1);
   const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   const daysInMonth = last.getDate();
 
-  // Sunday-first grid
-  const startDow = first.getDay(); // 0..6
+  const startDow = first.getDay();
   const totalCells = Math.ceil((startDow + daysInMonth) / 7) * 7;
 
-  // Group events by YYYY-MM-DD
   const byDate = {};
   function keyFor(d) {
     const y = d.getFullYear();
@@ -370,8 +340,135 @@ function renderMonth(events, now) {
     `;
   }
 
-  // Put ONLY the grid cells inside #month-grid (no month-head wrapper)
   gridEl.innerHTML = `${dowRow}${cells}`;
+}
+
+/* =========================================================
+   TICKERS
+   - Pull text from proxy:
+       ?mode=ticker&doc=master
+       ?mode=ticker&doc=install
+   - Smooth scrolling using Web Animations API
+   ========================================================= */
+
+const _tickerAnimations = new Map();
+
+function _stopTicker(laneId) {
+  const a = _tickerAnimations.get(laneId);
+  if (a) {
+    try { a.cancel(); } catch (e) {}
+  }
+  _tickerAnimations.delete(laneId);
+}
+
+function _startTicker(laneId, textEl) {
+  const lane = document.getElementById(laneId);
+  if (!lane || !textEl) return;
+
+  const windowEl = lane.querySelector(".ticker-window");
+  const track = lane.querySelector(".ticker-track");
+  if (!windowEl || !track) return;
+
+  // Stop any previous animation for this lane
+  _stopTicker(laneId);
+
+  // If empty, don't animate
+  const raw = (textEl.textContent || "").trim();
+  if (!raw) return;
+
+  // Make sure there's enough length so it "feels" like a ticker even if short
+  // Repeat with separator until it's long enough
+  let s = raw;
+  const sep = "   •   ";
+  while (s.length < 80) s = s + sep + raw;
+
+  // Put text inside track
+  // We duplicate the string to make a seamless loop
+  textEl.textContent = s + sep + s;
+
+  // Measure widths (after paint)
+  requestAnimationFrame(() => {
+    const winW = windowEl.clientWidth;
+    const textW = track.scrollWidth;
+
+    if (!winW || !textW) return;
+
+    // Speed: pixels per second.
+    // Bigger = faster. We keep it readable.
+    const pxPerSec = 90; // signage-friendly default
+    const distance = textW + winW;
+    const durationMs = (distance / pxPerSec) * 1000;
+
+    // Animate from right edge to left beyond text
+    const anim = track.animate(
+      [
+        { transform: `translateX(${winW}px)` },
+        { transform: `translateX(-${textW}px)` }
+      ],
+      {
+        duration: Math.max(8000, Math.round(durationMs)),
+        iterations: Infinity,
+        easing: "linear"
+      }
+    );
+
+    _tickerAnimations.set(laneId, anim);
+  });
+}
+
+async function loadTicker(docType) {
+  const elId = docType === "master" ? "ticker-master-text" : "ticker-install-text";
+  const laneId = docType === "master" ? "ticker-master" : "ticker-install";
+  const textEl = document.getElementById(elId);
+  if (!textEl) return;
+
+  try {
+    const base = CONFIG.proxyUrl.replace(/\/$/, "");
+    const url = `${base}?mode=ticker&doc=${encodeURIComponent(docType)}`;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`Ticker fetch failed (HTTP ${res.status})`);
+
+    const data = await res.json();
+    if (!data || data.ok !== true) {
+      throw new Error(data && data.error ? data.error : "Ticker returned bad JSON");
+    }
+
+    // If unchanged, don't restart animation (keeps motion smooth)
+    const newText = String(data.text || "").trim();
+    const oldText = (textEl.getAttribute("data-last") || "").trim();
+
+    textEl.setAttribute("data-last", newText);
+
+    if (newText !== oldText) {
+      textEl.textContent = newText || "";
+      _startTicker(laneId, textEl);
+    } else {
+      // Still ensure animation exists (first-load or after resize)
+      if (!_tickerAnimations.get(laneId)) _startTicker(laneId, textEl);
+    }
+
+  } catch (err) {
+    textEl.textContent = `Ticker error: ${String(err.message || err)}`;
+    _stopTicker(laneId);
+  }
+}
+
+function loadTickers() {
+  loadTicker("master");
+  loadTicker("install");
+}
+
+function restartTickers() {
+  const masterEl = document.getElementById("ticker-master-text");
+  const installEl = document.getElementById("ticker-install-text");
+  if (masterEl)_toggleRestart("ticker-master", masterEl);
+  if (installEl) _toggleRestart("ticker-install", installEl);
+}
+
+function _toggleRestart(laneId, textEl) {
+  // Force restart even if text unchanged (useful on resize)
+  _stopTicker(laneId);
+  _startTicker(laneId, textEl);
 }
 
 // ---------- main ----------
@@ -408,7 +505,6 @@ async function loadCalendar() {
     renderWeek(events, now);
     renderMonth(events, now);
 
-    // After painting the UI, auto-fit text so nothing cuts off
     queueFitAll();
 
     setStatus(`Loaded. Events total: ${events.length}`);
@@ -433,14 +529,26 @@ function titleFor(which) {
   return which;
 }
 
-window.addEventListener("resize", () => queueFitAll());
+window.addEventListener("resize", () => {
+  queueFitAll();
+  // Resize changes ticker geometry: restart belts
+  restartTickers();
+});
 
 document.addEventListener("DOMContentLoaded", () => {
   setStatus("DOMContentLoaded fired");
+
   loadCalendar();
+
+  // Load tickers immediately, then refresh on a timer
+  loadTickers();
+  setInterval(loadTickers, CONFIG.tickerRefreshMs);
 
   // Re-fit once fonts are definitely loaded (prevents surprise clipping)
   if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => queueFitAll());
+    document.fonts.ready.then(() => {
+      queueFitAll();
+      restartTickers();
+    });
   }
 });
