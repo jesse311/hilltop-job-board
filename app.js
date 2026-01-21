@@ -1,4 +1,5 @@
-// Hilltop Job Board - app.js (real Week + Month layouts)
+document.getElementById("status").textContent = "Status: NEW WEEK/MONTH FORMAT SCRIPT LOADED ✅";
+
 
 const CONFIG = {
   proxyUrl:
