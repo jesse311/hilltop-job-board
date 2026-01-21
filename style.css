@@ -31,7 +31,7 @@ body{
     30vh        /* today/tomorrow */
     22vh        /* week */
     26vh        /* month */
-    1fr;        /* notes (fills the remaining space) */
+    1fr;        /* notes */
   gap: var(--gap);
 }
 
@@ -69,16 +69,18 @@ h2{
   overflow: hidden;
 }
 
-/* ===== Today/Tomorrow (stacked, but inside one section height) ===== */
+/* ===== Today/Tomorrow ===== */
 .today-tomorrow{
   display:grid;
-  grid-template-columns: 1fr 1fr; /* use width efficiently */
+  grid-template-columns: 1fr 1fr;
   gap: var(--gap);
   height: 100%;
+  width: 100%;
 }
 
 .day-block{
   height: 100%;
+  width: 100%;
   line-height: 1.22;
 }
 
@@ -92,20 +94,34 @@ h2{
 .weekly{
   height: 100%;
   overflow: hidden;
+  width: 100%;
 }
 
 .week-grid{
-  width:100%;
-  height: calc(100% - 2.4em); /* leave room for H2 */
+  /* THE IMPORTANT PART: force the grid to be a full-width left-anchored block */
+  width: 100%;
+  height: calc(100% - 2.4em);
   display:grid;
-  grid-template-columns: 1fr 1fr; /* 2 columns so it fits */
+
+  /* Leave your existing choice alone for now (2 columns for portrait) */
+  grid-template-columns: 1fr 1fr;
+
   gap: var(--gap);
-  align-content: stretch;
+
+  /* Left/top anchor and stretch */
+  justify-content: start;
+  align-content: start;
+  justify-items: stretch;
+  align-items: stretch;
+
+  margin: 0;
 }
 
 .wk-card{
   background: rgba(255,255,255,0.08);
   height: 100%;
+  width: 100%;
+  min-width: 0; /* prevents content forcing weird centering */
 }
 
 .wk-head{
@@ -130,6 +146,7 @@ h2{
 .monthly{
   height: 100%;
   overflow: hidden;
+  width: 100%;
 }
 
 .month-head{
@@ -140,13 +157,20 @@ h2{
   margin-bottom: .4em;
 }
 
-/* Calendar grid fills the month area */
 .month-grid{
-  width:100%;
-  height: calc(100% - 3.0em); /* leave room for header */
+  /* THE IMPORTANT PART: full-width left-anchored grid */
+  width: 100%;
+  height: calc(100% - 3.0em);
   display:grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: clamp(6px, 0.7vh, 12px);
+
+  justify-content: start;
+  align-content: start;
+  justify-items: stretch;
+  align-items: stretch;
+
+  margin: 0;
 }
 
 .m-cell{
@@ -154,6 +178,9 @@ h2{
   padding: clamp(6px, 0.7vh, 12px);
   background: rgba(255,255,255,0.06);
   overflow: hidden;
+
+  width: 100%;
+  min-width: 0;
 }
 
 .m-empty{ background: transparent; }
@@ -191,6 +218,7 @@ h2{
   grid-template-columns: 1fr 1fr;
   gap: var(--gap);
   overflow: hidden;
+  width: 100%;
 }
 
 .notes-block{
@@ -202,97 +230,15 @@ h2{
 
 .notes-block iframe{
   width:100%;
-  flex: 1;               /* fills the panel */
+  flex: 1;
   border:none;
   background:#fff;
   border-radius: 10px;
 }
 
-/* Small tweak if the screen is VERY narrow */
+/* Narrow fallback */
 @media (max-width: 900px){
   .today-tomorrow{ grid-template-columns: 1fr; }
   .notes{ grid-template-columns: 1fr; }
   .week-grid{ grid-template-columns: 1fr; }
-}
-/* ===== FIX: Week should be one straight line (5 across) ===== */
-.week-grid{
-  width: 100% !important;
-  display: grid !important;
-  grid-template-columns: repeat(5, 1fr) !important;
-  gap: 14px !important;
-  justify-content: stretch !important;
-  align-items: stretch !important;
-}
-
-.wk-card{
-  width: 100% !important;
-  min-height: 160px;           /* adjust if you want taller */
-}
-
-/* ===== FIX: Month should take full width and feel bigger ===== */
-.month-grid{
-  width: 100% !important;
-  justify-content: stretch !important;
-  align-items: stretch !important;
-}
-
-.m-cell{
-  min-height: 110px;            /* makes the calendar “fill” visually */
-}
-
-/* ===== OPTIONAL: Give Month more room by shrinking notes slightly ===== */
-.notes-block iframe{
-  height: 220px !important;     /* bump up/down to taste */
-}
-/* ====== 1) Make laptop viewing sane (no more zooming out) ======
-   Use vmin instead of vh so text doesn't get gigantic on desktops.
-   Portrait display will still look great. */
-:root{
-  --h1: clamp(22px, 2.2vmin, 40px) !important;
-  --h2: clamp(16px, 1.7vmin, 28px) !important;
-  --text: clamp(12px, 1.25vmin, 20px) !important;
-}
-
-body{
-  font-size: var(--text) !important;
-}
-
-/* ====== 2) FORCE Week + Month to stretch full width ====== */
-.weekly, .monthly, .today-tomorrow, .notes{
-  width: 100% !important;
-}
-
-.week-grid{
-  width: 100% !important;
-  margin: 0 !important;
-  justify-content: stretch !important;
-  align-content: stretch !important;
-  grid-template-columns: repeat(5, minmax(0, 1fr)) !important; /* THIS is the key */
-}
-
-.wk-card{
-  width: 100% !important;
-  min-width: 0 !important; /* prevents weird shrinking */
-}
-
-.month-grid{
-  width: 100% !important;
-  margin: 0 !important;
-  justify-content: stretch !important;
-  align-content: stretch !important;
-  grid-template-columns: repeat(7, minmax(0, 1fr)) !important; /* key */
-}
-
-.m-cell{
-  min-width: 0 !important;
-}
-
-/* ====== 3) Give Month more room by shrinking Notes a bit ====== */
-.notes-block iframe{
-  height: 180px !important;  /* adjust to taste: 160–240 */
-}
-
-/* ====== 4) OPTIONAL: Make Today/Tomorrow a little less tall so Month grows ====== */
-.day-block{
-  min-height: 180px !important;  /* adjust to taste */
 }
