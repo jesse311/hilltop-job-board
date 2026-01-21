@@ -214,3 +214,33 @@ h2{
   .notes{ grid-template-columns: 1fr; }
   .week-grid{ grid-template-columns: 1fr; }
 }
+/* ===== FIX: Week should be one straight line (5 across) ===== */
+.week-grid{
+  width: 100% !important;
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr) !important;
+  gap: 14px !important;
+  justify-content: stretch !important;
+  align-items: stretch !important;
+}
+
+.wk-card{
+  width: 100% !important;
+  min-height: 160px;           /* adjust if you want taller */
+}
+
+/* ===== FIX: Month should take full width and feel bigger ===== */
+.month-grid{
+  width: 100% !important;
+  justify-content: stretch !important;
+  align-items: stretch !important;
+}
+
+.m-cell{
+  min-height: 110px;            /* makes the calendar “fill” visually */
+}
+
+/* ===== OPTIONAL: Give Month more room by shrinking notes slightly ===== */
+.notes-block iframe{
+  height: 220px !important;     /* bump up/down to taste */
+}
