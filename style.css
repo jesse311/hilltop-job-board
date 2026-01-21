@@ -247,4 +247,35 @@ h2{
   .week-grid{ grid-template-columns: 1fr; height: auto; }
   .month-grid{ height: auto; }
 }
+/* ===== FORCE ALL SECTIONS TO FULL WIDTH AND LEFT ALIGN ===== */
+
+/* Make every main section full width */
+.today-tomorrow, .weekly, .monthly, .notes {
+  width: 100% !important;
+  justify-content: flex-start !important;
+}
+
+.week-grid, .month-grid {
+  width: 100% !important;
+  margin: 0 !important;
+  justify-content: stretch !important;
+}
+
+.wk-card, .m-cell {
+  width: 100% !important;
+  min-width: 0 !important; /* Prevent any shrinking or centering issues */
+}
+
+/* Ensure headers don't block layout flow */
+.weekly h2, .monthly h2 {
+  margin-top: 0;
+  margin-bottom: 0.5em;
+}
+
+/* If needed, ensure the whole body acts as the main grid container */
+body {
+  display: grid;
+  grid-template-rows: auto auto auto auto auto auto; /* Each section in its own row */
+  gap: var(--gap);
+}
 
