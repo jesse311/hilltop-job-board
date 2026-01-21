@@ -1,554 +1,499 @@
-document.getElementById("status").textContent =
-  "Status: JOB BOARD + AUTO-FIT + TICKERS LOADED ✅";
-
-const CONFIG = {
-  proxyUrl:
-    "https://script.google.com/macros/s/AKfycbxspDG4qJhwKLXdxxvAMrkXaIJyj4Fpbhju8cCZtkn9pHnPp4DgP660LeIdpJARw2lU/exec",
-
-  // Week view style:
-  // "mon-fri" = shows Monday–Friday of the current week
-  // "next-5"  = shows next 5 days starting today
-  weekMode: "mon-fri",
-
-  // Month view shows the current month grid
-  monthMode: "current",
-
-  // How often to refresh tickers (ms)
-  tickerRefreshMs: 2 * 60 * 1000
-};
-
-function $(id) {
-  return document.getElementById(id);
-}
-
-function getBox(which) {
-  if (which === "week") return $("week") || $("week-grid");
-  if (which === "month") return $("month") || $("month-grid");
-  return $(which);
-}
-
-function setStatus(text) {
-  const s = $("status");
-  if (s) s.textContent = `Status: ${text}`;
-}
-
-function escapeHtml(str) {
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
-}
-
-function parseDateSafe(val) {
-  const d = new Date(val);
-  return isNaN(d.getTime()) ? null : d;
-}
-
-function startOfDay(d) {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
-}
-
-function sameDay(a, b) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-function formatTimeRange(ev) {
-  const start = parseDateSafe(ev.start);
-  const end = parseDateSafe(ev.end);
-  if (!start) return "";
-  if (ev.allDay) return "All day";
-  const opts = { hour: "numeric", minute: "2-digit" };
-  const s = start.toLocaleTimeString([], opts);
-  if (!end) return s;
-  const e = end.toLocaleTimeString([], opts);
-  return `${s} – ${e}`;
-}
-
-function hoistHeaderOutOfGrid(gridEl, fallbackText) {
-  if (!gridEl) return;
-  const parent = gridEl.closest("section");
-  if (!parent) return;
-
-  const sectionH2 = parent.querySelector(":scope > h2");
-  if (sectionH2) return;
-
-  const innerH2 = gridEl.querySelector("h2");
-  if (innerH2) {
-    innerH2.remove();
-    parent.insertBefore(innerH2, gridEl);
-    return;
-  }
-
-  const h2 = document.createElement("h2");
-  h2.textContent = fallbackText || "";
-  parent.insertBefore(h2, gridEl);
-}
-
 /* =========================================================
-   TEXT AUTO-FIT (NO CUTOFFS)
-   - Each section fitted independently:
-     .fit-today, .fit-tomorrow, .fit-week, .fit-month
-   ========================================================= */
+   Hilltop Job Board - Tizen/Signage Safe Build
+   - NO fetch()
+   - NO async/await
+   - JSONP for calendar + tickers (works around CORS + old browsers)
+   - ES5-ish (no arrow funcs, no const/let, no template literals)
+========================================================= */
 
-function _fitsBox(box) {
-  // 1–3px cushion helps prevent “zoom rounding” clipping
-  const fudge = 2;
-  return (
-    box.scrollHeight <= box.clientHeight + fudge &&
-    box.scrollWidth <= box.clientWidth + fudge
-  );
-}
+(function () {
+  // ===== CONFIG =====
+  var CONFIG = {
+    proxyUrl: "https://script.google.com/macros/s/AKfycbxspDG4qJhwKLXdxxvAMrkXaIJyj4Fpbhju8cCZtkn9pHnPp4DgP660LeIdpJARw2lU/exec",
+    weekMode: "mon-fri",
+    monthMode: "current",
+    tickerRefreshMs: 2 * 60 * 1000
+  };
 
-function fitTextToBox(box, opts = {}) {
-  const target = box.querySelector(".fit-text");
-  if (!target) return;
+  function $(id) { return document.getElementById(id); }
 
-  const min = typeof opts.min === "number" ? opts.min : 6;
-  const max = typeof opts.max === "number" ? opts.max : 24;
-
-  target.style.fontSize = max + "px";
-
-  if (_fitsBox(box)) return;
-
-  let lo = min;
-  let hi = max;
-
-  while (hi - lo > 0.25) {
-    const mid = (lo + hi) / 2;
-    target.style.fontSize = mid + "px";
-    if (_fitsBox(box)) lo = mid;
-    else hi = mid;
+  function setStatus(text) {
+    var s = $("status");
+    if (s) s.textContent = "Status: " + text;
   }
 
-  target.style.fontSize = lo + "px";
-}
-
-let _fitQueued = false;
-function queueFitAll() {
-  if (_fitQueued) return;
-  _fitQueued = true;
-
-  requestAnimationFrame(() => {
-    _fitQueued = false;
-
-    document.querySelectorAll(".fit-today").forEach((box) =>
-      fitTextToBox(box, { min: 8, max: 22 })
-    );
-    document.querySelectorAll(".fit-tomorrow").forEach((box) =>
-      fitTextToBox(box, { min: 8, max: 22 })
-    );
-
-    document.querySelectorAll(".fit-week").forEach((box) =>
-      fitTextToBox(box, { min: 7, max: 13 })
-    );
-
-    document.querySelectorAll(".fit-month").forEach((box) =>
-      fitTextToBox(box, { min: 6, max: 11 })
-    );
-  });
-}
-
-// ---------- TODAY / TOMORROW ----------
-function renderTodayTomorrow(which, events) {
-  const el = getBox(which);
-  if (!el) return;
-
-  const title = which === "today" ? "Today" : "Tomorrow";
-  const fitClass = which === "today" ? "fit-today" : "fit-tomorrow";
-
-  if (!events.length) {
-    el.innerHTML = `<h2>${title}</h2>
-      <div class="fit-box ${fitClass}">
-        <div class="fit-text" style="line-height:1.25; opacity:.85;">No events.</div>
-      </div>`;
-    return;
+  function escapeHtml(str) {
+    str = String(str);
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
   }
 
-  const lines = events.map((ev) => {
-    const t = formatTimeRange(ev);
-    const name = ev.title ? escapeHtml(ev.title) : "(No title)";
-    const loc = ev.location ? `<br>${escapeHtml(ev.location)}` : "";
-    return `${name}${t ? `<br>${escapeHtml(t)}` : ""}${loc}`;
-  });
+  function parseDateSafe(val) {
+    var d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+  }
 
-  el.innerHTML = `<h2>${title}</h2>
-    <div class="fit-box ${fitClass}">
-      <div class="fit-text" style="line-height:1.25;">${lines.join(
-        "<br><br>"
-      )}</div>
-    </div>`;
-}
+  function startOfDay(d) {
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+  }
 
-// ---------- WEEK ----------
-function getWeekStart(now) {
-  const d = startOfDay(now);
-  if (CONFIG.weekMode === "next-5") return d;
-
-  const day = d.getDay();
-  const diffToMon = day === 0 ? -6 : 1 - day;
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + diffToMon);
-}
-
-function renderWeek(events, now) {
-  const gridEl = getBox("week");
-  if (!gridEl) return;
-
-  hoistHeaderOutOfGrid(gridEl, "This Week");
-
-  const weekStart = getWeekStart(now);
-  const days = [];
-  for (let i = 0; i < 5; i++) {
-    days.push(
-      new Date(
-        weekStart.getFullYear(),
-        weekStart.getMonth(),
-        weekStart.getDate() + i
-      )
+  function sameDay(a, b) {
+    return (
+      a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate()
     );
   }
 
-  const byDay = {};
-  days.forEach((d) => {
-    byDay[d.toDateString()] = [];
-  });
+  function formatTimeRange(ev) {
+    var start = parseDateSafe(ev.start);
+    var end = parseDateSafe(ev.end);
+    if (!start) return "";
+    if (ev.allDay) return "All day";
 
-  events.forEach((ev) => {
-    if (!ev._start) return;
-    for (const d of days) {
-      if (sameDay(ev._start, d)) {
-        byDay[d.toDateString()].push(ev);
-        break;
+    // Keep this simple for older browsers
+    var s = start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    if (!end) return s;
+    var e = end.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+    return s + " - " + e;
+  }
+
+  // =========================================================
+  // JSONP HELPER
+  // =========================================================
+  function jsonp(url, cbOk, cbErr) {
+    var cbName = "__jsonp_cb_" + String(Date.now()) + "_" + String(Math.floor(Math.random() * 100000));
+    var script = document.createElement("script");
+
+    window[cbName] = function (data) {
+      cleanup();
+      cbOk && cbOk(data);
+    };
+
+    function cleanup() {
+      try { delete window[cbName]; } catch (e) { window[cbName] = undefined; }
+      if (script && script.parentNode) script.parentNode.removeChild(script);
+    }
+
+    script.onerror = function () {
+      cleanup();
+      cbErr && cbErr(new Error("JSONP load failed"));
+    };
+
+    // Add callback param
+    var joiner = (url.indexOf("?") >= 0) ? "&" : "?";
+    script.src = url + joiner + "callback=" + encodeURIComponent(cbName) + "&_ts=" + Date.now();
+    document.head.appendChild(script);
+  }
+
+  // =========================================================
+  // AUTO-FIT (your “no cutoff” rule)
+  // =========================================================
+  function _fitsBox(box) {
+    var fudge = 2;
+    return (
+      box.scrollHeight <= box.clientHeight + fudge &&
+      box.scrollWidth <= box.clientWidth + fudge
+    );
+  }
+
+  function fitTextToBox(box, min, max) {
+    var target = box.querySelector(".fit-text");
+    if (!target) return;
+
+    target.style.fontSize = max + "px";
+    if (_fitsBox(box)) return;
+
+    var lo = min;
+    var hi = max;
+    while (hi - lo > 0.25) {
+      var mid = (lo + hi) / 2;
+      target.style.fontSize = mid + "px";
+      if (_fitsBox(box)) lo = mid;
+      else hi = mid;
+    }
+    target.style.fontSize = lo + "px";
+  }
+
+  var _fitQueued = false;
+  function queueFitAll() {
+    if (_fitQueued) return;
+    _fitQueued = true;
+    requestAnimationFrame(function () {
+      _fitQueued = false;
+
+      var i, boxes;
+
+      boxes = document.querySelectorAll(".fit-today");
+      for (i = 0; i < boxes.length; i++) fitTextToBox(boxes[i], 8, 22);
+
+      boxes = document.querySelectorAll(".fit-tomorrow");
+      for (i = 0; i < boxes.length; i++) fitTextToBox(boxes[i], 8, 22);
+
+      boxes = document.querySelectorAll(".fit-week");
+      for (i = 0; i < boxes.length; i++) fitTextToBox(boxes[i], 7, 13);
+
+      boxes = document.querySelectorAll(".fit-month");
+      for (i = 0; i < boxes.length; i++) fitTextToBox(boxes[i], 6, 11);
+    });
+  }
+
+  // =========================================================
+  // RENDER: TODAY / TOMORROW
+  // (Assumes your HTML uses the same containers as before)
+  // =========================================================
+  function getBox(which) {
+    if (which === "week") return $("week") || $("week-grid");
+    if (which === "month") return $("month") || $("month-grid");
+    return $(which);
+  }
+
+  function renderTodayTomorrow(which, events) {
+    var el = getBox(which);
+    if (!el) return;
+
+    var title = (which === "today") ? "Today" : "Tomorrow";
+    var fitClass = (which === "today") ? "fit-today" : "fit-tomorrow";
+
+    if (!events || !events.length) {
+      el.innerHTML =
+        '<h2>' + title + '</h2>' +
+        '<div class="fit-box ' + fitClass + '"><div class="fit-text">No events.</div></div>';
+      return;
+    }
+
+    var out = [];
+    for (var i = 0; i < events.length; i++) {
+      var ev = events[i];
+      var t = formatTimeRange(ev);
+      var name = ev.title ? escapeHtml(ev.title) : "(No title)";
+      var loc = ev.location ? ("<br>" + escapeHtml(ev.location)) : "";
+      out.push(name + (t ? ("<br>" + escapeHtml(t)) : "") + loc);
+    }
+
+    el.innerHTML =
+      '<h2>' + title + '</h2>' +
+      '<div class="fit-box ' + fitClass + '"><div class="fit-text">' + out.join("<br><br>") + "</div></div>";
+  }
+
+  // =========================================================
+  // WEEK
+  // =========================================================
+  function getWeekStart(now) {
+    var d = startOfDay(now);
+    if (CONFIG.weekMode === "next-5") return d;
+    var day = d.getDay(); // 0 Sun .. 6 Sat
+    var diffToMon = (day === 0) ? -6 : (1 - day);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate() + diffToMon);
+  }
+
+  function renderWeek(events, now) {
+    var gridEl = getBox("week");
+    if (!gridEl) return;
+
+    var weekStart = getWeekStart(now);
+    var days = [];
+    for (var i = 0; i < 5; i++) {
+      days.push(new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i));
+    }
+
+    // bucket by day string
+    var byDay = {};
+    for (i = 0; i < days.length; i++) byDay[days[i].toDateString()] = [];
+
+    for (i = 0; i < events.length; i++) {
+      var ev = events[i];
+      if (!ev._start) continue;
+      for (var j = 0; j < days.length; j++) {
+        if (sameDay(ev._start, days[j])) {
+          byDay[days[j].toDateString()].push(ev);
+          break;
+        }
       }
     }
-  });
 
-  const cards = days
-    .map((d) => {
-      const label = d.toLocaleDateString([], { weekday: "short" });
-      const mmdd = d.toLocaleDateString([], { month: "numeric", day: "numeric" });
-      const items = (byDay[d.toDateString()] || []).sort(
-        (a, b) => a._start - b._start
+    var cards = [];
+    for (i = 0; i < days.length; i++) {
+      var d = days[i];
+      var label = d.toLocaleDateString([], { weekday: "short" });
+      var mmdd = d.toLocaleDateString([], { month: "numeric", day: "numeric" });
+
+      var items = byDay[d.toDateString()] || [];
+      items.sort(function (a, b) { return a._start - b._start; });
+
+      var body = [];
+      if (items.length) {
+        for (j = 0; j < items.length; j++) {
+          var ev2 = items[j];
+          var t2 = formatTimeRange(ev2);
+          var n2 = ev2.title ? escapeHtml(ev2.title) : "(No title)";
+          body.push((t2 ? (escapeHtml(t2) + " ") : "") + n2);
+        }
+      } else {
+        body.push("No installs");
+      }
+
+      cards.push(
+        '<div class="wk-card fit-box fit-week">' +
+          '<div class="wk-head"><span>' + label + '</span><span>' + mmdd + '</span></div>' +
+          '<div class="wk-body"><div class="fit-text">' + body.join("<br>") + '</div></div>' +
+        "</div>"
+      );
+    }
+
+    gridEl.innerHTML = cards.join("");
+  }
+
+  // =========================================================
+  // MONTH (simple)
+  // =========================================================
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+
+  function renderMonth(events, now) {
+    var gridEl = getBox("month");
+    if (!gridEl) return;
+
+    var first = new Date(now.getFullYear(), now.getMonth(), 1);
+    var last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    var daysInMonth = last.getDate();
+    var startDow = first.getDay();
+    var totalCells = Math.ceil((startDow + daysInMonth) / 7) * 7;
+
+    var byDate = {};
+    for (var i = 0; i < events.length; i++) {
+      var ev = events[i];
+      if (!ev._start) continue;
+      if (ev._start.getMonth() !== now.getMonth() || ev._start.getFullYear() !== now.getFullYear()) continue;
+
+      var k = ev._start.getFullYear() + "-" + pad2(ev._start.getMonth() + 1) + "-" + pad2(ev._start.getDate());
+      if (!byDate[k]) byDate[k] = [];
+      byDate[k].push(ev);
+    }
+
+    var cells = [];
+    for (i = 0; i < totalCells; i++) {
+      var dayNum = i - startDow + 1;
+      if (dayNum < 1 || dayNum > daysInMonth) {
+        cells.push('<div class="m-cell m-empty"></div>');
+        continue;
+      }
+
+      var d = new Date(now.getFullYear(), now.getMonth(), dayNum);
+      var key = d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
+      var items = byDate[key] || [];
+      items.sort(function (a, b) { return a._start - b._start; });
+
+      var maxShow = 3;
+      var lines = [];
+      for (var j = 0; j < Math.min(items.length, maxShow); j++) {
+        var ev3 = items[j];
+        var t3 = formatTimeRange(ev3);
+        var n3 = ev3.title ? escapeHtml(ev3.title) : "(No title)";
+        lines.push((t3 ? (escapeHtml(t3) + " ") : "") + n3);
+      }
+      if (items.length > maxShow) lines.push("+" + (items.length - maxShow) + " more");
+
+      var isToday = sameDay(startOfDay(now), d);
+      cells.push(
+        '<div class="m-cell fit-box fit-month' + (isToday ? " m-today" : "") + '">' +
+          '<div class="m-day">' + dayNum + '</div>' +
+          '<div class="m-events"><div class="fit-text">' + (lines.join("<br>") || "") + "</div></div>" +
+        "</div>"
+      );
+    }
+
+    // DOW header row (keep your existing CSS grid)
+    var dowRow =
+      '<div class="m-dow">Sun</div><div class="m-dow">Mon</div><div class="m-dow">Tue</div><div class="m-dow">Wed</div>' +
+      '<div class="m-dow">Thu</div><div class="m-dow">Fri</div><div class="m-dow">Sat</div>';
+
+    gridEl.innerHTML = dowRow + cells.join("");
+  }
+
+  // =========================================================
+  // TICKERS (JSONP)
+  // =========================================================
+  var _tickerAnimations = {};
+  function stopTicker(laneId) {
+    var a = _tickerAnimations[laneId];
+    if (a && a.cancel) { try { a.cancel(); } catch (e) {} }
+    _tickerAnimations[laneId] = null;
+  }
+
+  function startTicker(laneId, textEl) {
+    var lane = $(laneId);
+    if (!lane || !textEl) return;
+
+    var windowEl = lane.querySelector(".ticker-window");
+    var track = lane.querySelector(".ticker-track");
+    if (!windowEl || !track) return;
+
+    stopTicker(laneId);
+
+    var raw = (textEl.textContent || "").replace(/^\s+|\s+$/g, "");
+    if (!raw) return;
+
+    var s = raw;
+    var sep = " • ";
+    while (s.length < 80) s = s + sep + raw;
+
+    textEl.textContent = s + sep + s;
+
+    requestAnimationFrame(function () {
+      var winW = windowEl.clientWidth;
+      var textW = track.scrollWidth;
+      if (!winW || !textW || !track.animate) return; // animate might not exist on some builds
+
+      var pxPerSec = 90;
+      var distance = textW + winW;
+      var durationMs = (distance / pxPerSec) * 1000;
+
+      var anim = track.animate(
+        [
+          { transform: "translateX(" + winW + "px)" },
+          { transform: "translateX(" + (-textW) + "px)" }
+        ],
+        {
+          duration: Math.max(8000, Math.round(durationMs)),
+          iterations: Infinity,
+          easing: "linear"
+        }
       );
 
-      const body = items.length
-        ? items
-            .map((ev) => {
-              const t = formatTimeRange(ev);
-              const name = ev.title ? escapeHtml(ev.title) : "(No title)";
-              return `<div class="wk-item"><span class="wk-time">${escapeHtml(
-                t
-              )}</span>${name}</div>`;
-            })
-            .join("")
-        : `<div class="wk-empty">No installs</div>`;
-
-      return `
-        <div class="wk-card">
-          <div class="wk-head"><span>${label}</span><span>${mmdd}</span></div>
-          <div class="wk-body fit-box fit-week"><div class="fit-text">${body}</div></div>
-        </div>
-      `;
-    })
-    .join("");
-
-  gridEl.innerHTML = cards;
-}
-
-// ---------- MONTH ----------
-function renderMonth(events, now) {
-  const gridEl = getBox("month");
-  if (!gridEl) return;
-
-  hoistHeaderOutOfGrid(gridEl, "This Month");
-
-  const first = new Date(now.getFullYear(), now.getMonth(), 1);
-  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-  const daysInMonth = last.getDate();
-
-  const startDow = first.getDay();
-  const totalCells = Math.ceil((startDow + daysInMonth) / 7) * 7;
-
-  const byDate = {};
-  function keyFor(d) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const da = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${da}`;
+      _tickerAnimations[laneId] = anim;
+    });
   }
 
-  events.forEach((ev) => {
-    if (!ev._start) return;
-    if (
-      ev._start.getMonth() !== now.getMonth() ||
-      ev._start.getFullYear() !== now.getFullYear()
-    )
-      return;
-    const k = keyFor(ev._start);
-    (byDate[k] ||= []).push(ev);
-  });
+  function loadTicker(docType) {
+    var elId = (docType === "master") ? "ticker-master-text" : "ticker-install-text";
+    var laneId = (docType === "master") ? "ticker-master" : "ticker-install";
+    var textEl = $(elId);
+    if (!textEl) return;
 
-  const dowRow = `
-    <div class="m-cell" style="background:transparent; font-weight:700; text-align:center;">Sun</div>
-    <div class="m-cell" style="background:transparent; font-weight:700; text-align:center;">Mon</div>
-    <div class="m-cell" style="background:transparent; font-weight:700; text-align:center;">Tue</div>
-    <div class="m-cell" style="background:transparent; font-weight:700; text-align:center;">Wed</div>
-    <div class="m-cell" style="background:transparent; font-weight:700; text-align:center;">Thu</div>
-    <div class="m-cell" style="background:transparent; font-weight:700; text-align:center;">Fri</div>
-    <div class="m-cell" style="background:transparent; font-weight:700; text-align:center;">Sat</div>
-  `;
+    var base = CONFIG.proxyUrl.replace(/\/$/, "");
+    var url = base + "?mode=ticker&doc=" + encodeURIComponent(docType);
 
-  let cells = "";
-  for (let i = 0; i < totalCells; i++) {
-    const dayNum = i - startDow + 1;
-    if (dayNum < 1 || dayNum > daysInMonth) {
-      cells += `<div class="m-cell m-empty"></div>`;
-      continue;
-    }
+    jsonp(
+      url,
+      function (data) {
+        if (!data || data.ok !== true) {
+          textEl.textContent = "Ticker error: bad response";
+          stopTicker(laneId);
+          return;
+        }
 
-    const d = new Date(now.getFullYear(), now.getMonth(), dayNum);
-    const k = keyFor(d);
-    const items = (byDate[k] || []).sort((a, b) => a._start - b._start);
+        var newText = String(data.text || "");
+        var oldText = String(textEl.getAttribute("data-last") || "");
+        textEl.setAttribute("data-last", newText);
 
-    const maxShow = 3;
-    const shown = items
-      .slice(0, maxShow)
-      .map((ev) => {
-        const t = formatTimeRange(ev);
-        const name = ev.title ? escapeHtml(ev.title) : "(No title)";
-        return `<div class="m-item">${escapeHtml(t)} ${name}</div>`;
-      })
-      .join("");
-
-    const more =
-      items.length > maxShow
-        ? `<div class="m-more">+${items.length - maxShow} more</div>`
-        : "";
-
-    const isToday = sameDay(startOfDay(now), d);
-
-    cells += `
-      <div class="m-cell ${isToday ? "m-today" : ""}">
-        <div class="m-day">${dayNum}</div>
-        <div class="m-events fit-box fit-month"><div class="fit-text">${shown}${more}</div></div>
-      </div>
-    `;
-  }
-
-  gridEl.innerHTML = `${dowRow}${cells}`;
-}
-
-/* =========================================================
-   TICKERS
-   - Pull text from proxy:
-       ?mode=ticker&doc=master
-       ?mode=ticker&doc=install
-   - Smooth scrolling using Web Animations API
-   ========================================================= */
-
-const _tickerAnimations = new Map();
-
-function _stopTicker(laneId) {
-  const a = _tickerAnimations.get(laneId);
-  if (a) {
-    try { a.cancel(); } catch (e) {}
-  }
-  _tickerAnimations.delete(laneId);
-}
-
-function _startTicker(laneId, textEl) {
-  const lane = document.getElementById(laneId);
-  if (!lane || !textEl) return;
-
-  const windowEl = lane.querySelector(".ticker-window");
-  const track = lane.querySelector(".ticker-track");
-  if (!windowEl || !track) return;
-
-  // Stop any previous animation for this lane
-  _stopTicker(laneId);
-
-  // If empty, don't animate
-  const raw = (textEl.textContent || "").trim();
-  if (!raw) return;
-
-  // Make sure there's enough length so it "feels" like a ticker even if short
-  // Repeat with separator until it's long enough
-  let s = raw;
-  const sep = "   •   ";
-  while (s.length < 80) s = s + sep + raw;
-
-  // Put text inside track
-  // We duplicate the string to make a seamless loop
-  textEl.textContent = s + sep + s;
-
-  // Measure widths (after paint)
-  requestAnimationFrame(() => {
-    const winW = windowEl.clientWidth;
-    const textW = track.scrollWidth;
-
-    if (!winW || !textW) return;
-
-    // Speed: pixels per second.
-    // Bigger = faster. We keep it readable.
-    const pxPerSec = 90; // signage-friendly default
-    const distance = textW + winW;
-    const durationMs = (distance / pxPerSec) * 1000;
-
-    // Animate from right edge to left beyond text
-    const anim = track.animate(
-      [
-        { transform: `translateX(${winW}px)` },
-        { transform: `translateX(-${textW}px)` }
-      ],
-      {
-        duration: Math.max(8000, Math.round(durationMs)),
-        iterations: Infinity,
-        easing: "linear"
+        if (newText !== oldText) {
+          textEl.textContent = newText;
+          startTicker(laneId, textEl);
+        } else {
+          if (!_tickerAnimations[laneId]) startTicker(laneId, textEl);
+        }
+      },
+      function (err) {
+        textEl.textContent = "Ticker error: " + (err && err.message ? err.message : "failed");
+        stopTicker(laneId);
       }
     );
-
-    _tickerAnimations.set(laneId, anim);
-  });
-}
-
-async function loadTicker(docType) {
-  const elId = docType === "master" ? "ticker-master-text" : "ticker-install-text";
-  const laneId = docType === "master" ? "ticker-master" : "ticker-install";
-  const textEl = document.getElementById(elId);
-  if (!textEl) return;
-
-  try {
-    const base = CONFIG.proxyUrl.replace(/\/$/, "");
-    const url = `${base}?mode=ticker&doc=${encodeURIComponent(docType)}`;
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error(`Ticker fetch failed (HTTP ${res.status})`);
-
-    const data = await res.json();
-    if (!data || data.ok !== true) {
-      throw new Error(data && data.error ? data.error : "Ticker returned bad JSON");
-    }
-
-    // If unchanged, don't restart animation (keeps motion smooth)
-    const newText = String(data.text || "").trim();
-    const oldText = (textEl.getAttribute("data-last") || "").trim();
-
-    textEl.setAttribute("data-last", newText);
-
-    if (newText !== oldText) {
-      textEl.textContent = newText || "";
-      _startTicker(laneId, textEl);
-    } else {
-      // Still ensure animation exists (first-load or after resize)
-      if (!_tickerAnimations.get(laneId)) _startTicker(laneId, textEl);
-    }
-
-  } catch (err) {
-    textEl.textContent = `Ticker error: ${String(err.message || err)}`;
-    _stopTicker(laneId);
   }
-}
 
-function loadTickers() {
-  loadTicker("master");
-  loadTicker("install");
-}
+  function loadTickers() {
+    loadTicker("master");
+    loadTicker("install");
+  }
 
-function restartTickers() {
-  const masterEl = document.getElementById("ticker-master-text");
-  const installEl = document.getElementById("ticker-install-text");
-  if (masterEl)_toggleRestart("ticker-master", masterEl);
-  if (installEl) _toggleRestart("ticker-install", installEl);
-}
+  function restartTickers() {
+    var masterEl = $("ticker-master-text");
+    var installEl = $("ticker-install-text");
+    if (masterEl) { stopTicker("ticker-master"); startTicker("ticker-master", masterEl); }
+    if (installEl) { stopTicker("ticker-install"); startTicker("ticker-install", installEl); }
+  }
 
-function _toggleRestart(laneId, textEl) {
-  // Force restart even if text unchanged (useful on resize)
-  _stopTicker(laneId);
-  _startTicker(laneId, textEl);
-}
-
-// ---------- main ----------
-async function loadCalendar() {
-  try {
+  // =========================================================
+  // CALENDAR (JSONP)
+  // =========================================================
+  function loadCalendar() {
     setStatus("Fetching calendar…");
-    const url = CONFIG.proxyUrl.replace(/\/$/, "") + "?mode=events";
-    const res = await fetch(url, { cache: "no-store" });
-    if (!res.ok) throw new Error(`Calendar fetch failed (HTTP ${res.status})`);
 
-    const data = await res.json();
-    if (!data || !Array.isArray(data.events))
-      throw new Error("Calendar returned unexpected JSON");
+    var base = CONFIG.proxyUrl.replace(/\/$/, "");
+    var url = base + "?mode=events";
 
-    const events = data.events
-      .map((ev) => ({
-        ...ev,
-        _start: parseDateSafe(ev.start),
-        _end: parseDateSafe(ev.end),
-      }))
-      .filter((ev) => ev._start)
-      .sort((a, b) => a._start - b._start);
+    jsonp(
+      url,
+      function (data) {
+        try {
+          if (!data || !data.events || !data.events.length) {
+            setStatus("Loaded. Events total: 0");
+          }
 
-    const now = new Date();
-    const today0 = startOfDay(now);
-    const tomorrow0 = new Date(today0.getTime() + 86400000);
+          var events = [];
+          for (var i = 0; i < (data.events || []).length; i++) {
+            var ev = data.events[i];
+            var s = parseDateSafe(ev.start);
+            if (!s) continue;
+            ev._start = s;
+            ev._end = parseDateSafe(ev.end);
+            events.push(ev);
+          }
 
-    const todayEvents = events.filter((ev) => sameDay(ev._start, today0));
-    const tomorrowEvents = events.filter((ev) => sameDay(ev._start, tomorrow0));
+          events.sort(function (a, b) { return a._start - b._start; });
 
-    renderTodayTomorrow("today", todayEvents);
-    renderTodayTomorrow("tomorrow", tomorrowEvents);
+          var now = new Date();
+          var today0 = startOfDay(now);
+          var tomorrow0 = new Date(today0.getTime() + 86400000);
 
-    renderWeek(events, now);
-    renderMonth(events, now);
+          var todayEvents = [];
+          var tomorrowEvents = [];
 
-    queueFitAll();
+          for (i = 0; i < events.length; i++) {
+            var e = events[i];
+            if (sameDay(e._start, today0)) todayEvents.push(e);
+            if (sameDay(e._start, tomorrow0)) tomorrowEvents.push(e);
+          }
 
-    setStatus(`Loaded. Events total: ${events.length}`);
-  } catch (e) {
-    setStatus(`JS error: ${e.message}`);
-    ["today", "tomorrow", "week", "month"].forEach((w) => {
-      const el = getBox(w);
-      if (el)
-        el.innerHTML = `<h2>${titleFor(w)}</h2><p style="opacity:.9;">${escapeHtml(
-          e.message
-        )}</p>`;
-    });
-    queueFitAll();
+          renderTodayTomorrow("today", todayEvents);
+          renderTodayTomorrow("tomorrow", tomorrowEvents);
+          renderWeek(events, now);
+          renderMonth(events, now);
+
+          queueFitAll();
+          setStatus("Loaded. Events total: " + events.length);
+        } catch (ex) {
+          setStatus("JS error: " + (ex && ex.message ? ex.message : ex));
+        }
+      },
+      function (err) {
+        setStatus("Calendar error: " + (err && err.message ? err.message : "failed"));
+      }
+    );
   }
-}
 
-function titleFor(which) {
-  if (which === "today") return "Today";
-  if (which === "tomorrow") return "Tomorrow";
-  if (which === "week") return "This Week";
-  if (which === "month") return "This Month";
-  return which;
-}
+  // =========================================================
+  // BOOT
+  // =========================================================
+  window.addEventListener("resize", function () {
+    queueFitAll();
+    restartTickers();
+  });
 
-window.addEventListener("resize", () => {
-  queueFitAll();
-  // Resize changes ticker geometry: restart belts
-  restartTickers();
-});
+  document.addEventListener("DOMContentLoaded", function () {
+    setStatus("Booting…");
+    loadCalendar();
+    loadTickers();
+    setInterval(loadTickers, CONFIG.tickerRefreshMs);
 
-document.addEventListener("DOMContentLoaded", () => {
-  setStatus("DOMContentLoaded fired");
-
-  loadCalendar();
-
-  // Load tickers immediately, then refresh on a timer
-  loadTickers();
-  setInterval(loadTickers, CONFIG.tickerRefreshMs);
-
-  // Re-fit once fonts are definitely loaded (prevents surprise clipping)
-  if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(() => {
+    // One extra fit after fonts settle
+    setTimeout(function () {
       queueFitAll();
       restartTickers();
-    });
-  }
-});
+    }, 800);
+  });
+
+})();
