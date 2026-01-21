@@ -1,4 +1,4 @@
-/* ===== OH55A-S Portrait Dashboard (WITH NOTES) ===== */
+/* ===== OH55A-S Portrait Job Board (NO dashboard wrapper) ===== */
 :root{
   --pad: clamp(12px, 1.2vh, 20px);
   --gap: clamp(12px, 1.2vh, 20px);
@@ -16,11 +16,8 @@ body{
   background: linear-gradient(180deg, #0f2a44, #123b63);
   color:#fff;
   font-size: var(--text);
-  overflow: hidden; /* NO SCROLL on signage */
-}
 
-/* Whole screen dashboard */
-.dashboard{
+  /* THIS IS THE KEY: body becomes the dashboard frame */
   height: 100vh;
   width: 100vw;
   padding: var(--pad);
@@ -33,6 +30,10 @@ body{
     26vh        /* month */
     1fr;        /* notes */
   gap: var(--gap);
+
+  overflow: hidden; /* NO SCROLL on signage */
+  justify-items: stretch;
+  align-items: stretch;
 }
 
 /* Header */
@@ -41,6 +42,7 @@ body{
   align-items:center;
   gap: var(--gap);
   padding: 0;
+  width: 100%;
 }
 .logo{ height: clamp(44px, 4.8vh, 72px); }
 .header h1{
@@ -51,6 +53,7 @@ body{
 
 /* Status line */
 #status{
+  width: 100%;
   font-weight: 700;
   opacity: .92;
 }
@@ -90,25 +93,22 @@ h2{
   font-size: clamp(13px, 1.55vh, 20px);
 }
 
-/* ===== Week section ===== */
+/* ===== Week ===== */
 .weekly{
   height: 100%;
-  overflow: hidden;
   width: 100%;
+  overflow: hidden;
 }
 
 .week-grid{
-  /* THE IMPORTANT PART: force the grid to be a full-width left-anchored block */
   width: 100%;
-  height: calc(100% - 2.4em);
-  display:grid;
+  height: calc(100% - 2.4em); /* space for h2 */
+  display: grid;
 
-  /* Leave your existing choice alone for now (2 columns for portrait) */
-  grid-template-columns: 1fr 1fr;
-
+  /* One row, 5 across */
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--gap);
 
-  /* Left/top anchor and stretch */
   justify-content: start;
   align-content: start;
   justify-items: stretch;
@@ -121,7 +121,7 @@ h2{
   background: rgba(255,255,255,0.08);
   height: 100%;
   width: 100%;
-  min-width: 0; /* prevents content forcing weird centering */
+  min-width: 0;
 }
 
 .wk-head{
@@ -142,11 +142,11 @@ h2{
 .wk-time{ opacity:.9; margin-right:.35em; }
 .wk-empty{ opacity:.65; }
 
-/* ===== Month section ===== */
+/* ===== Month ===== */
 .monthly{
   height: 100%;
-  overflow: hidden;
   width: 100%;
+  overflow: hidden;
 }
 
 .month-head{
@@ -158,10 +158,10 @@ h2{
 }
 
 .month-grid{
-  /* THE IMPORTANT PART: full-width left-anchored grid */
   width: 100%;
-  height: calc(100% - 3.0em);
+  height: calc(100% - 3.0em); /* space for month header */
   display:grid;
+
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: clamp(6px, 0.7vh, 12px);
 
@@ -211,14 +211,14 @@ h2{
   outline: 2px solid rgba(255,255,255,0.35);
 }
 
-/* ===== Notes (always visible) ===== */
+/* ===== Notes ===== */
 .notes{
   height: 100%;
+  width: 100%;
   display:grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--gap);
   overflow: hidden;
-  width: 100%;
 }
 
 .notes-block{
@@ -236,35 +236,15 @@ h2{
   border-radius: 10px;
 }
 
-/* Narrow fallback */
+/* Narrow fallback (mostly for laptop testing) */
 @media (max-width: 900px){
+  body{
+    grid-template-rows: auto auto auto auto auto 1fr;
+    overflow: auto; /* allow scroll on small screens */
+  }
   .today-tomorrow{ grid-template-columns: 1fr; }
   .notes{ grid-template-columns: 1fr; }
-  .week-grid{ grid-template-columns: 1fr; }
-}
-/* ===== HARD LEFT PIN + FULL WIDTH (kills right-floating) ===== */
-
-.weekly, .monthly{
-  width: 100% !important;
-  text-align: left !important;     /* if anything was inheriting alignment */
+  .week-grid{ grid-template-columns: 1fr; height: auto; }
+  .month-grid{ height: auto; }
 }
 
-/* Force the grids to be BLOCK-level, full width, left pinned */
-#week-grid, .week-grid,
-#month-grid, .month-grid{
-  display: grid !important;        /* not inline-grid */
-  width: 100% !important;
-
-  margin-left: 0 !important;
-  margin-right: auto !important;   /* THIS pins it to the left */
-
-  justify-content: start !important;
-  justify-items: stretch !important;
-  align-content: start !important;
-  align-items: stretch !important;
-}
-
-/* Make sure cells/cards don't force the grid to shrink */
-.wk-card, .m-cell{
-  min-width: 0 !important;
-}
