@@ -1,18 +1,29 @@
 /* =========================================================
-   Hilltop Job Board - Tizen/Signage Safe Build
+   Hilltop Job Board - SIGNAGE SAFE + AUTO REFRESH
    - NO fetch()
    - NO async/await
    - JSONP for calendar + tickers (works around CORS + old browsers)
    - ES5-ish (no arrow funcs, no const/let, no template literals)
+   - Auto-refresh:
+       - Calendar refresh
+       - Ticker refresh
+       - Full page reload (anti-freeze / anti-cache)
 ========================================================= */
 
 (function () {
   // ===== CONFIG =====
   var CONFIG = {
     proxyUrl: "https://script.google.com/macros/s/AKfycbxspDG4qJhwKLXdxxvAMrkXaIJyj4Fpbhju8cCZtkn9pHnPp4DgP660LeIdpJARw2lU/exec",
+
+    // Week view style:
+    // "mon-fri" = shows Monday–Friday of the current week
+    // "next-5"  = shows next 5 days starting today
     weekMode: "mon-fri",
-    monthMode: "current",
-    tickerRefreshMs: 2 * 60 * 1000
+
+    // Refresh rates (ms)
+    tickerRefreshMs: 2 * 60 * 1000,   // tickers update every 2 min
+    calendarRefreshMs: 2 * 60 * 1000, // calendar update every 2 min
+    pageReloadMs: 10 * 60 * 1000      // full page reload every 10 min
   };
 
   function $(id) { return document.getElementById(id); }
@@ -55,7 +66,6 @@
     if (!start) return "";
     if (ev.allDay) return "All day";
 
-    // Keep this simple for older browsers
     var s = start.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     if (!end) return s;
     var e = end.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
@@ -63,7 +73,7 @@
   }
 
   // =========================================================
-  // JSONP HELPER
+  // JSONP HELPER (old browser friendly)
   // =========================================================
   function jsonp(url, cbOk, cbErr) {
     var cbName = "__jsonp_cb_" + String(Date.now()) + "_" + String(Math.floor(Math.random() * 100000));
@@ -71,7 +81,7 @@
 
     window[cbName] = function (data) {
       cleanup();
-      cbOk && cbOk(data);
+      if (cbOk) cbOk(data);
     };
 
     function cleanup() {
@@ -81,19 +91,20 @@
 
     script.onerror = function () {
       cleanup();
-      cbErr && cbErr(new Error("JSONP load failed"));
+      if (cbErr) cbErr(new Error("JSONP load failed"));
     };
 
-    // Add callback param
+    // Add callback param + cache buster
     var joiner = (url.indexOf("?") >= 0) ? "&" : "?";
     script.src = url + joiner + "callback=" + encodeURIComponent(cbName) + "&_ts=" + Date.now();
     document.head.appendChild(script);
   }
 
   // =========================================================
-  // AUTO-FIT (your “no cutoff” rule)
+  // AUTO-FIT (NO CUTOFFS)
   // =========================================================
   function _fitsBox(box) {
+    // Cushion prevents “zoom rounding” clipping
     var fudge = 2;
     return (
       box.scrollHeight <= box.clientHeight + fudge &&
@@ -143,8 +154,7 @@
   }
 
   // =========================================================
-  // RENDER: TODAY / TOMORROW
-  // (Assumes your HTML uses the same containers as before)
+  // RENDER HELPERS
   // =========================================================
   function getBox(which) {
     if (which === "week") return $("week") || $("week-grid");
@@ -201,7 +211,6 @@
       days.push(new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i));
     }
 
-    // bucket by day string
     var byDay = {};
     for (i = 0; i < days.length; i++) byDay[days[i].toDateString()] = [];
 
@@ -249,7 +258,7 @@
   }
 
   // =========================================================
-  // MONTH (simple)
+  // MONTH
   // =========================================================
   function pad2(n) { return (n < 10 ? "0" : "") + n; }
 
@@ -306,12 +315,7 @@
       );
     }
 
-    // DOW header row (keep your existing CSS grid)
-    var dowRow =
-      '<div class="m-dow">Sun</div><div class="m-dow">Mon</div><div class="m-dow">Tue</div><div class="m-dow">Wed</div>' +
-      '<div class="m-dow">Thu</div><div class="m-dow">Fri</div><div class="m-dow">Sat</div>';
-
-    gridEl.innerHTML = dowRow + cells.join("");
+    gridEl.innerHTML = cells.join("");
   }
 
   // =========================================================
@@ -346,7 +350,7 @@
     requestAnimationFrame(function () {
       var winW = windowEl.clientWidth;
       var textW = track.scrollWidth;
-      if (!winW || !textW || !track.animate) return; // animate might not exist on some builds
+      if (!winW || !textW || !track.animate) return;
 
       var pxPerSec = 90;
       var distance = textW + winW;
@@ -417,7 +421,7 @@
   }
 
   // =========================================================
-  // CALENDAR (JSONP)
+  // CALENDAR (JSONP) + AUTO REFRESH
   // =========================================================
   function loadCalendar() {
     setStatus("Fetching calendar…");
@@ -476,6 +480,19 @@
   }
 
   // =========================================================
+  // HARD RELOAD (anti-freeze + forces latest JS/CSS)
+  // =========================================================
+  function hardReload() {
+    // “Turn it off and back on”
+    try {
+      window.location.reload(true);
+    } catch (e) {
+      // Some browsers ignore the boolean. Still reload.
+      window.location.reload();
+    }
+  }
+
+  // =========================================================
   // BOOT
   // =========================================================
   window.addEventListener("resize", function () {
@@ -483,17 +500,35 @@
     restartTickers();
   });
 
+  document.addEventListener("visibilitychange", function () {
+    // If screen/app resumes after being in background, refresh data
+    if (!document.hidden) {
+      loadCalendar();
+      loadTickers();
+      queueFitAll();
+      restartTickers();
+    }
+  });
+
   document.addEventListener("DOMContentLoaded", function () {
     setStatus("Booting…");
+
+    // Initial load
     loadCalendar();
     loadTickers();
+
+    // Keep data fresh (no human refresh needed)
     setInterval(loadTickers, CONFIG.tickerRefreshMs);
+    setInterval(loadCalendar, CONFIG.calendarRefreshMs);
+
+    // Keep the whole page healthy (beats caching + stuck states)
+    setInterval(hardReload, CONFIG.pageReloadMs);
 
     // One extra fit after fonts settle
     setTimeout(function () {
       queueFitAll();
       restartTickers();
-    }, 800);
+    }, 900);
   });
 
 })();
