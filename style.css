@@ -242,3 +242,29 @@ h2{
   .notes{ grid-template-columns: 1fr; }
   .week-grid{ grid-template-columns: 1fr; }
 }
+/* ===== HARD LEFT PIN + FULL WIDTH (kills right-floating) ===== */
+
+.weekly, .monthly{
+  width: 100% !important;
+  text-align: left !important;     /* if anything was inheriting alignment */
+}
+
+/* Force the grids to be BLOCK-level, full width, left pinned */
+#week-grid, .week-grid,
+#month-grid, .month-grid{
+  display: grid !important;        /* not inline-grid */
+  width: 100% !important;
+
+  margin-left: 0 !important;
+  margin-right: auto !important;   /* THIS pins it to the left */
+
+  justify-content: start !important;
+  justify-items: stretch !important;
+  align-content: start !important;
+  align-items: stretch !important;
+}
+
+/* Make sure cells/cards don't force the grid to shrink */
+.wk-card, .m-cell{
+  min-width: 0 !important;
+}
