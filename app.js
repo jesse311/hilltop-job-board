@@ -160,7 +160,7 @@ async function loadCalendar() {
   renderWeekGrid(weekEvents);
   renderMonthGrid(events); // pass all events so month can show everything in current month
 }
-}
+
 
 document.addEventListener("DOMContentLoaded", () => {
   setLoading();
