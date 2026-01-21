@@ -154,10 +154,12 @@ async function loadCalendar() {
   const weekEvents = events.filter(ev => ev._start >= today0 && ev._start < weekEnd);
   const monthEvents = events.filter(ev => ev._start >= today0 && ev._start < monthEnd);
 
-  renderSection("today", todayEvents);
+   renderSection("today", todayEvents);
   renderSection("tomorrow", tomorrowEvents);
-  renderSection("week", weekEvents);
-  renderSection("month", monthEvents);
+
+  renderWeekGrid(weekEvents);
+  renderMonthGrid(events); // pass all events so month can show everything in current month
+}
 }
 
 document.addEventListener("DOMContentLoaded", () => {
