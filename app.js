@@ -104,14 +104,90 @@ function hoistHeaderOutOfGrid(gridEl, fallbackText) {
   parent.insertBefore(h2, gridEl);
 }
 
+/* =========================================================
+   TEXT AUTO-FIT (NO CUTOFFS)
+   - Each section is fitted independently:
+     .fit-today, .fit-tomorrow, .fit-week, .fit-month
+   - We shrink text until it fits inside its box.
+   ========================================================= */
+
+function _fitsBox(box) {
+  // small fudge factor helps prevent “barely fits” clipping
+  const fudge = 1;
+  return (
+    box.scrollHeight <= box.clientHeight + fudge &&
+    box.scrollWidth <= box.clientWidth + fudge
+  );
+}
+
+function fitTextToBox(box, opts = {}) {
+  const target = box.querySelector(".fit-text");
+  if (!target) return;
+
+  const min = typeof opts.min === "number" ? opts.min : 6;
+  const max = typeof opts.max === "number" ? opts.max : 24;
+
+  // Reset to max so we’re not stuck from previous run
+  target.style.fontSize = max + "px";
+
+  // If it already fits at max, we’re done
+  if (_fitsBox(box)) return;
+
+  // Binary-search the best size between min/max
+  let lo = min;
+  let hi = max;
+
+  while (hi - lo > 0.25) {
+    const mid = (lo + hi) / 2;
+    target.style.fontSize = mid + "px";
+    if (_fitsBox(box)) lo = mid;
+    else hi = mid;
+  }
+
+  target.style.fontSize = lo + "px";
+}
+
+let _fitQueued = false;
+function queueFitAll() {
+  if (_fitQueued) return;
+  _fitQueued = true;
+
+  requestAnimationFrame(() => {
+    _fitQueued = false;
+
+    // TODAY / TOMORROW (big “10-foot view”)
+    document.querySelectorAll(".fit-today").forEach((box) =>
+      fitTextToBox(box, { min: 8, max: 22 })
+    );
+    document.querySelectorAll(".fit-tomorrow").forEach((box) =>
+      fitTextToBox(box, { min: 8, max: 22 })
+    );
+
+    // WEEK (100-foot view)
+    document.querySelectorAll(".fit-week").forEach((box) =>
+      fitTextToBox(box, { min: 7, max: 13 })
+    );
+
+    // MONTH (1000-foot view)
+    document.querySelectorAll(".fit-month").forEach((box) =>
+      fitTextToBox(box, { min: 6, max: 11 })
+    );
+  });
+}
+
 // ---------- TODAY / TOMORROW ----------
 function renderTodayTomorrow(which, events) {
   const el = getBox(which);
   if (!el) return;
 
   const title = which === "today" ? "Today" : "Tomorrow";
+  const fitClass = which === "today" ? "fit-today" : "fit-tomorrow";
+
   if (!events.length) {
-    el.innerHTML = `<h2>${title}</h2><p style="opacity:.85;">No events.</p>`;
+    el.innerHTML = `<h2>${title}</h2>
+      <div class="fit-box ${fitClass}">
+        <div class="fit-text" style="line-height:1.25; opacity:.85;">No events.</div>
+      </div>`;
     return;
   }
 
@@ -122,9 +198,12 @@ function renderTodayTomorrow(which, events) {
     return `${name}${t ? `<br>${escapeHtml(t)}` : ""}${loc}`;
   });
 
-  el.innerHTML = `<h2>${title}</h2><div style="line-height:1.25;">${lines.join(
-    "<br><br>"
-  )}</div>`;
+  el.innerHTML = `<h2>${title}</h2>
+    <div class="fit-box ${fitClass}">
+      <div class="fit-text" style="line-height:1.25;">${lines.join(
+        "<br><br>"
+      )}</div>
+    </div>`;
 }
 
 // ---------- WEEK (5 day cards) ----------
@@ -198,7 +277,7 @@ function renderWeek(events, now) {
       return `
         <div class="wk-card">
           <div class="wk-head"><span>${label}</span><span>${mmdd}</span></div>
-          <div class="wk-body">${body}</div>
+          <div class="wk-body fit-box fit-week"><div class="fit-text">${body}</div></div>
         </div>
       `;
     })
@@ -286,7 +365,7 @@ function renderMonth(events, now) {
     cells += `
       <div class="m-cell ${isToday ? "m-today" : ""}">
         <div class="m-day">${dayNum}</div>
-        <div class="m-events">${shown}${more}</div>
+        <div class="m-events fit-box fit-month"><div class="fit-text">${shown}${more}</div></div>
       </div>
     `;
   }
@@ -329,6 +408,9 @@ async function loadCalendar() {
     renderWeek(events, now);
     renderMonth(events, now);
 
+    // After painting the UI, auto-fit text so nothing cuts off
+    queueFitAll();
+
     setStatus(`Loaded. Events total: ${events.length}`);
   } catch (e) {
     setStatus(`JS error: ${e.message}`);
@@ -339,6 +421,7 @@ async function loadCalendar() {
           e.message
         )}</p>`;
     });
+    queueFitAll();
   }
 }
 
@@ -350,8 +433,14 @@ function titleFor(which) {
   return which;
 }
 
+window.addEventListener("resize", () => queueFitAll());
+
 document.addEventListener("DOMContentLoaded", () => {
   setStatus("DOMContentLoaded fired");
   loadCalendar();
-});
 
+  // Re-fit once fonts are definitely loaded (prevents surprise clipping)
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => queueFitAll());
+  }
+});
