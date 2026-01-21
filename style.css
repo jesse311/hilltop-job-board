@@ -1,39 +1,40 @@
-/* ===== Portrait "Sign Stage" (laptop preview + real display) ===== */
+/* ===== Fullscreen Signage Layout (fills whatever the device gives us) ===== */
 :root{
-  --pad: 18px;
-  --gap: 18px;
-  --h1: 38px;
-  --h2: 24px;
-  --text: 16px;
+  /* Use clamp() so it scales on TV vs laptop */
+  --pad: clamp(10px, 1.6vh, 20px);
+  --gap: clamp(10px, 1.6vh, 20px);
+
+  --h1: clamp(28px, 3.6vh, 44px);
+  --h2: clamp(18px, 2.4vh, 28px);
+  --text: clamp(12px, 1.8vh, 18px);
 }
+
 *{ box-sizing: border-box; }
 
-/* The outer stage: centers the portrait canvas on any screen */
 body{
   margin:0;
   font-family: Arial, Helvetica, sans-serif;
-  background: #0b1e33; /* laptop preview background */
+  background:#0b1e33;
   color:#fff;
   overflow:hidden; /* signage mode */
 }
 
-/* Centers the sign canvas */
+/* Stage just holds the dashboard */
 .stage{
-  width: 100vw;
-  height: 100vh;
-  display:grid;
-  place-items:center;
+  width:100vw;
+  height:100vh;
   overflow:hidden;
 }
 
-/* This is the REAL "screen" (portrait 9:16 canvas) */
+/* THIS is now true fullscreen */
 .dashboard{
-  width: min(100vw, calc(100vh * (9 / 16)));
-  height: min(100vh, calc(100vw * (16 / 9)));
+  width:100vw;
+  height:100vh;
   padding: var(--pad);
   background: linear-gradient(180deg, #0f2a44, #123b63);
   font-size: var(--text);
   overflow:hidden;
+
   display:flex;
   flex-direction: column;
 }
@@ -46,7 +47,10 @@ body{
   margin-bottom: 10px;
 }
 .logo{ height: 60px; }
-.header h1{ margin:0; font-size: var(--h1); }
+.header h1{
+  margin:0;
+  font-size: var(--h1);
+}
 
 /* Status line */
 #status{
@@ -69,12 +73,11 @@ h2{
   overflow:hidden;
 }
 
-/* ===== Layout sizing inside the portrait canvas ===== */
-/* We give each section a share of the vertical height */
+/* ===== Layout sizing inside the screen ===== */
 .today-tomorrow{ flex: 0 0 20%; }
 .weekly{ flex: 0 0 18%; }
-.monthly{ flex: 1 1 auto; } /* month can take remaining space now */
-.tickers{ flex: 0 0 auto; }  /* always stays its own height at bottom */
+.monthly{ flex: 1 1 auto; }
+.tickers{ flex: 0 0 auto; }
 
 /* Today/Tomorrow */
 .today-tomorrow{
@@ -99,8 +102,6 @@ h2{
   justify-content: stretch;
   align-items: stretch;
 }
-
-/* cards created by JS */
 .wk-card{
   background: rgba(255,255,255,0.08);
   min-height: 0;
@@ -174,17 +175,13 @@ h2{
 }
 
 /* =========================================================
-   TICKERS (BOTTOM OF SCREEN)
-   Two lanes, always visible, no user scrolling.
-   JS will feed text into #ticker-master-text and #ticker-install-text
-   ========================================================= */
-
+   TICKERS (BOTTOM OF SCREEN) - Two lanes, always visible
+========================================================= */
 .tickers{
   margin-top: 10px;
   display:flex;
   flex-direction: column;
   gap: 10px;
-  /* Ticker block height stays consistent */
   padding-top: 6px;
 }
 
@@ -217,7 +214,6 @@ h2{
   padding: 10px 12px;
 }
 
-/* Track + text are what we’ll animate later with JS/CSS */
 .ticker-track{
   display:inline-block;
   will-change: transform;
