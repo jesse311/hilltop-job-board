@@ -1,98 +1,165 @@
-/* ===== Clean Full-Width Layout for Job Board ===== */
+:root{
+  --pad: 18px;
+  --gap: 18px;
 
-:root {
-  --pad: clamp(12px, 1.2vh, 20px);
-  --gap: clamp(12px, 1.2vh, 20px);
-  --h1: clamp(24px, 3.2vh, 44px);
-  --h2: clamp(18px, 2.4vh, 32px);
-  --text: clamp(14px, 1.7vh, 22px);
+  --h1: 38px;
+  --h2: 24px;
+  --text: 16px;
 }
 
-* {
-  box-sizing: border-box;
-}
+*{ box-sizing: border-box; }
 
-body {
-  margin: 0;
+body{
+  margin:0;
+  padding: var(--pad);
   font-family: Arial, Helvetica, sans-serif;
   background: linear-gradient(180deg, #0f2a44, #123b63);
-  color: #fff;
+  color:#fff;
   font-size: var(--text);
-
-  /* Make the body the full-page grid */
-  display: grid;
-  grid-template-rows: auto auto 1fr 1fr 1fr auto;
-  gap: var(--gap);
-  height: 100vh;
-  overflow: hidden;
+  overflow:hidden; /* signage mode */
 }
 
-/* Header styling */
-.header {
-  display: flex;
-  align-items: center;
-  gap: var(--gap);
+/* Header */
+.header{
+  display:flex;
+  align-items:center;
+  gap: 16px;
+  margin-bottom: 10px;
 }
-
-.logo {
-  height: clamp(44px, 4.8vh, 72px);
-}
-
-.header h1 {
-  margin: 0;
+.logo{ height: 60px; }
+.header h1{
+  margin:0;
   font-size: var(--h1);
 }
 
-/* Main sections as full-width blocks */
-.today-tomorrow, .weekly, .monthly, .notes {
-  width: 100%;
-  display: block;
+/* Status line */
+#status{
+  font-weight:700;
+  opacity:.9;
+  margin: 6px 0 16px 0;
 }
 
-.day-block, .wk-card, .notes-block {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
-  padding: var(--pad);
-}
-
-/* Today/Tomorrow side by side */
-.today-tomorrow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--gap);
-}
-
-/* Week section: one row, 5 columns */
-.week-grid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: var(--gap);
-}
-
-/* Month section: one row, 7 columns */
-.month-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: var(--gap);
-}
-
-/* Notes section */
-.notes {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--gap);
-}
-
-/* Ensure iframes are full width */
-.notes-block iframe {
-  width: 100%;
-  height: 300px; /* Adjust as needed */
-  border: none;
-  background: #fff;
-  border-radius: 10px;
-}
-
-h2 {
-  margin: 0 0 0.5em 0;
+/* Section headings */
+h2{
+  margin: 0 0 10px 0;
   font-size: var(--h2);
+}
+
+/* Shared panel look */
+.day-block, .wk-card, .notes-block{
+  background: rgba(255,255,255,0.10);
+  border-radius: 14px;
+  padding: 16px;
+  overflow:hidden;
+}
+
+/* Today/Tomorrow */
+.today-tomorrow{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+  margin-bottom: var(--gap);
+}
+
+/* WEEK (force full width, 5 across, left aligned) */
+.weekly{
+  width: 100%;
+  margin-bottom: var(--gap);
+}
+
+.week-grid{
+  width: 100%;
+  display:grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  justify-content: start; /* important */
+  align-items: stretch;
+}
+
+/* cards created by JS */
+.wk-card{
+  background: rgba(255,255,255,0.08);
+  min-height: 140px;
+}
+
+.wk-head{
+  display:flex;
+  justify-content: space-between;
+  font-weight: 800;
+  margin-bottom: 8px;
+  opacity:.95;
+  font-size: 14px;
+}
+
+.wk-body{
+  font-size: 13px;
+  line-height: 1.2;
+}
+.wk-item{ margin-bottom: 6px; }
+.wk-empty{ opacity:.65; }
+
+/* MONTH (full width 7 across) */
+.monthly{
+  width: 100%;
+  margin-bottom: var(--gap);
+}
+
+.month-grid{
+  width:100%;
+  display:grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  justify-content: start; /* important */
+  align-items: stretch;
+}
+
+.m-cell{
+  border-radius: 12px;
+  padding: 8px;
+  background: rgba(255,255,255,0.06);
+  min-height: 90px;
+  overflow:hidden;
+}
+.m-empty{ background: transparent; }
+
+.m-day{
+  font-weight:800;
+  margin-bottom: 4px;
+  font-size: 12px;
+  opacity:.95;
+}
+.m-events{
+  font-size: 11px;
+  line-height: 1.1;
+}
+.m-item{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.m-today{
+  outline: 2px solid rgba(255,255,255,0.35);
+}
+
+/* Notes */
+.notes{
+  width:100%;
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+}
+
+.notes-block{
+  display:flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.notes-block iframe{
+  width:100%;
+  flex:1;
+  border:none;
+  background:#fff;
+  border-radius: 10px;
+  min-height: 240px;
 }
