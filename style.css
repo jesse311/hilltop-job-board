@@ -244,3 +244,55 @@ h2{
 .notes-block iframe{
   height: 220px !important;     /* bump up/down to taste */
 }
+/* ====== 1) Make laptop viewing sane (no more zooming out) ======
+   Use vmin instead of vh so text doesn't get gigantic on desktops.
+   Portrait display will still look great. */
+:root{
+  --h1: clamp(22px, 2.2vmin, 40px) !important;
+  --h2: clamp(16px, 1.7vmin, 28px) !important;
+  --text: clamp(12px, 1.25vmin, 20px) !important;
+}
+
+body{
+  font-size: var(--text) !important;
+}
+
+/* ====== 2) FORCE Week + Month to stretch full width ====== */
+.weekly, .monthly, .today-tomorrow, .notes{
+  width: 100% !important;
+}
+
+.week-grid{
+  width: 100% !important;
+  margin: 0 !important;
+  justify-content: stretch !important;
+  align-content: stretch !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important; /* THIS is the key */
+}
+
+.wk-card{
+  width: 100% !important;
+  min-width: 0 !important; /* prevents weird shrinking */
+}
+
+.month-grid{
+  width: 100% !important;
+  margin: 0 !important;
+  justify-content: stretch !important;
+  align-content: stretch !important;
+  grid-template-columns: repeat(7, minmax(0, 1fr)) !important; /* key */
+}
+
+.m-cell{
+  min-width: 0 !important;
+}
+
+/* ====== 3) Give Month more room by shrinking Notes a bit ====== */
+.notes-block iframe{
+  height: 180px !important;  /* adjust to taste: 160–240 */
+}
+
+/* ====== 4) OPTIONAL: Make Today/Tomorrow a little less tall so Month grows ====== */
+.day-block{
+  min-height: 180px !important;  /* adjust to taste */
+}
