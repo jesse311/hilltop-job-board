@@ -1,10 +1,16 @@
-// Hilltop Job Board - app.js (diagnostic + robust)
+// Hilltop Job Board - app.js (real Week + Month layouts)
 
 const CONFIG = {
   proxyUrl:
     "https://script.google.com/macros/s/AKfycbxspDG4qJhwKLXdxxvAMrkXaIJyj4Fpbhju8cCZtkn9pHnPp4DgP660LeIdpJARw2lU/exec",
-  weekDaysAhead: 7,
-  monthDaysAhead: 31
+
+  // Week view style:
+  // "mon-fri" = shows Monday–Friday of the current week
+  // "next-5"  = shows next 5 days starting today
+  weekMode: "mon-fri",
+
+  // Month view shows the current month grid
+  monthMode: "current"
 };
 
 function $(id) { return document.getElementById(id); }
@@ -29,30 +35,6 @@ function escapeHtml(str) {
     .replace(/'/g, "&#039;");
 }
 
-function titleFor(which) {
-  if (which === "today") return "Today";
-  if (which === "tomorrow") return "Tomorrow";
-  if (which === "week") return "This Week";
-  if (which === "month") return "This Month";
-  return which;
-}
-
-function setBox(which, html) {
-  const el = getBox(which);
-  if (!el) return;
-  el.innerHTML = html;
-}
-
-function setLoading() {
-  ["today", "tomorrow", "week", "month"].forEach((which) => {
-    setBox(which, `<h2>${titleFor(which)}</h2><p>Loading…</p>`);
-  });
-}
-
-function setError(which, msg) {
-  setBox(which, `<h2>${titleFor(which)}</h2><p style="opacity:.9;">${escapeHtml(msg)}</p>`);
-}
-
 function parseDateSafe(val) {
   const d = new Date(val);
   return isNaN(d.getTime()) ? null : d;
@@ -63,9 +45,11 @@ function startOfDay(d) {
 }
 
 function sameDay(a, b) {
-  return a.getFullYear() === b.getFullYear() &&
+  return (
+    a.getFullYear() === b.getFullYear() &&
     a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
+    a.getDate() === b.getDate()
+  );
 }
 
 function formatTimeRange(ev) {
@@ -80,29 +64,178 @@ function formatTimeRange(ev) {
   return `${s} – ${e}`;
 }
 
-function renderEvent(ev) {
-  const time = formatTimeRange(ev);
-  const title = ev.title ? escapeHtml(ev.title) : "(No title)";
-  return `
-    <div class="event">
-      <div class="event-title">${title}</div>
-      ${time ? `<div class="event-time">${time}</div>` : ""}
+// ---------- TODAY / TOMORROW (keep your simple format) ----------
+function renderTodayTomorrow(which, events) {
+  const el = getBox(which);
+  if (!el) return;
+
+  const title = which === "today" ? "Today" : "Tomorrow";
+  if (!events.length) {
+    el.innerHTML = `<h2>${title}</h2><p style="opacity:.85;">No events.</p>`;
+    return;
+  }
+
+  const lines = events.map(ev => {
+    const t = formatTimeRange(ev);
+    const name = ev.title ? escapeHtml(ev.title) : "(No title)";
+    const loc = ev.location ? `<br>${escapeHtml(ev.location)}` : "";
+    return `${name}${t ? `<br>${escapeHtml(t)}` : ""}${loc}`;
+  });
+
+  el.innerHTML = `<h2>${title}</h2><div style="line-height:1.25;">${lines.join("<br><br>")}</div>`;
+}
+
+// ---------- WEEK (5 day cards) ----------
+function getWeekStart(now) {
+  const d = startOfDay(now);
+  if (CONFIG.weekMode === "next-5") return d;
+
+  // mon-fri mode:
+  // JS getDay(): Sun=0, Mon=1, ... Sat=6
+  const day = d.getDay();
+  const diffToMon = (day === 0) ? -6 : (1 - day); // Sunday -> go back 6
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate() + diffToMon);
+}
+
+function renderWeek(events, now) {
+  const el = getBox("week");
+  if (!el) return;
+
+  const weekStart = getWeekStart(now);
+  const days = [];
+
+  for (let i = 0; i < 5; i++) {
+    const dt = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i);
+    days.push(dt);
+  }
+
+  // Group events by day
+  const byDay = {};
+  days.forEach(d => { byDay[d.toDateString()] = []; });
+
+  events.forEach(ev => {
+    if (!ev._start) return;
+    for (const d of days) {
+      if (sameDay(ev._start, d)) {
+        byDay[d.toDateString()].push(ev);
+        break;
+      }
+    }
+  });
+
+  // Build cards
+  const cards = days.map(d => {
+    const label = d.toLocaleDateString([], { weekday: "short" });
+    const mmdd = d.toLocaleDateString([], { month: "numeric", day: "numeric" });
+    const items = (byDay[d.toDateString()] || []).sort((a,b)=>a._start-b._start);
+
+    const body = items.length
+      ? items.map(ev => {
+          const t = formatTimeRange(ev);
+          const name = ev.title ? escapeHtml(ev.title) : "(No title)";
+          return `<div class="wk-item"><span class="wk-time">${escapeHtml(t)}</span>${name}</div>`;
+        }).join("")
+      : `<div class="wk-empty">No installs</div>`;
+
+    return `
+      <div class="wk-card">
+        <div class="wk-head"><span>${label}</span><span>${mmdd}</span></div>
+        <div class="wk-body">${body}</div>
+      </div>
+    `;
+  }).join("");
+
+  el.innerHTML = `<h2>This Week</h2><div class="week-grid">${cards}</div>`;
+}
+
+// ---------- MONTH (real calendar grid) ----------
+function renderMonth(events, now) {
+  const el = getBox("month");
+  if (!el) return;
+
+  const first = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthName = first.toLocaleDateString([], { month: "long", year: "numeric" });
+  const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const daysInMonth = last.getDate();
+
+  // Sunday-first grid
+  const startDow = first.getDay(); // 0..6
+  const totalCells = Math.ceil((startDow + daysInMonth) / 7) * 7;
+
+  // Group events by day-of-month
+  const byDate = {}; // key: YYYY-MM-DD
+  function keyFor(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const da = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${da}`;
+  }
+
+  events.forEach(ev => {
+    if (!ev._start) return;
+    if (ev._start.getMonth() !== now.getMonth() || ev._start.getFullYear() !== now.getFullYear()) return;
+    const k = keyFor(ev._start);
+    (byDate[k] ||= []).push(ev);
+  });
+
+  // Cells
+  let cells = "";
+  for (let i = 0; i < totalCells; i++) {
+    const dayNum = i - startDow + 1;
+    if (dayNum < 1 || dayNum > daysInMonth) {
+      cells += `<div class="m-cell m-empty"></div>`;
+      continue;
+    }
+
+    const d = new Date(now.getFullYear(), now.getMonth(), dayNum);
+    const k = keyFor(d);
+    const items = (byDate[k] || []).sort((a,b)=>a._start-b._start);
+
+    const maxShow = 3;
+    const shown = items.slice(0, maxShow).map(ev => {
+      const t = formatTimeRange(ev);
+      const name = ev.title ? escapeHtml(ev.title) : "(No title)";
+      // keep it short in month view
+      return `<div class="m-item">${escapeHtml(t)} ${name}</div>`;
+    }).join("");
+
+    const more = items.length > maxShow ? `<div class="m-more">+${items.length - maxShow} more</div>` : "";
+
+    const isToday = sameDay(startOfDay(now), d);
+    cells += `
+      <div class="m-cell ${isToday ? "m-today" : ""}">
+        <div class="m-day">${dayNum}</div>
+        <div class="m-events">${shown}${more}</div>
+      </div>
+    `;
+  }
+
+  const dowRow = `
+    <div class="m-cell" style="background:transparent; font-weight:700; text-align:center;">Sun</div>
+    <div class="m-cell" style="background:transparent; font-weight:700; text-align:center;">Mon</div>
+    <div class="m-cell" style="background:transparent; font-weight:700; text-align:center;">Tue</div>
+    <div class="m-cell" style="background:transparent; font-weight:700; text-align:center;">Wed</div>
+    <div class="m-cell" style="background:transparent; font-weight:700; text-align:center;">Thu</div>
+    <div class="m-cell" style="background:transparent; font-weight:700; text-align:center;">Fri</div>
+    <div class="m-cell" style="background:transparent; font-weight:700; text-align:center;">Sat</div>
+  `;
+
+  el.innerHTML = `
+    <div class="month-head">
+      <h2 style="margin:0;">This Month</h2>
+      <div style="opacity:.9; font-weight:700;">${monthName}</div>
+    </div>
+    <div class="month-grid">
+      ${dowRow}
+      ${cells}
     </div>
   `;
 }
 
-function renderList(which, events) {
-  if (!events || !events.length) {
-    setBox(which, `<h2>${titleFor(which)}</h2><p style="opacity:.85;">No events.</p>`);
-    return;
-  }
-  setBox(which, `<h2>${titleFor(which)}</h2>` + events.map(renderEvent).join(""));
-}
-
+// ---------- main ----------
 async function loadCalendar() {
   try {
-    setStatus("JS running, fetching calendar…");
-
+    setStatus("Fetching calendar…");
     const url = CONFIG.proxyUrl.replace(/\/$/, "") + "?mode=events";
     const res = await fetch(url, { cache: "no-store" });
     if (!res.ok) throw new Error(`Calendar fetch failed (HTTP ${res.status})`);
@@ -111,35 +244,42 @@ async function loadCalendar() {
     if (!data || !Array.isArray(data.events)) throw new Error("Calendar returned unexpected JSON");
 
     const events = data.events
-      .map((ev) => ({ ...ev, _start: parseDateSafe(ev.start) }))
+      .map((ev) => ({ ...ev, _start: parseDateSafe(ev.start), _end: parseDateSafe(ev.end) }))
       .filter((ev) => ev._start)
       .sort((a, b) => a._start - b._start);
 
     const now = new Date();
     const today0 = startOfDay(now);
     const tomorrow0 = new Date(today0.getTime() + 86400000);
-    const weekEnd = new Date(today0.getTime() + CONFIG.weekDaysAhead * 86400000);
-    const monthEnd = new Date(today0.getTime() + CONFIG.monthDaysAhead * 86400000);
 
     const todayEvents = events.filter((ev) => sameDay(ev._start, today0));
     const tomorrowEvents = events.filter((ev) => sameDay(ev._start, tomorrow0));
-    const weekEvents = events.filter((ev) => ev._start >= today0 && ev._start < weekEnd);
-    const monthEvents = events.filter((ev) => ev._start >= today0 && ev._start < monthEnd);
 
-    renderList("today", todayEvents);
-    renderList("tomorrow", tomorrowEvents);
-    renderList("week", weekEvents);
-    renderList("month", monthEvents);
+    renderTodayTomorrow("today", todayEvents);
+    renderTodayTomorrow("tomorrow", tomorrowEvents);
 
-    setStatus(`Loaded. Events total: ${events.length} | Week: ${weekEvents.length} | Month: ${monthEvents.length}`);
+    renderWeek(events, now);
+    renderMonth(events, now);
+
+    setStatus(`Loaded. Events total: ${events.length}`);
   } catch (e) {
     setStatus(`JS error: ${e.message}`);
-    ["today", "tomorrow", "week", "month"].forEach((w) => setError(w, e.message));
+    ["today", "tomorrow", "week", "month"].forEach((w) => {
+      const el = getBox(w);
+      if (el) el.innerHTML = `<h2>${titleFor(w)}</h2><p style="opacity:.9;">${escapeHtml(e.message)}</p>`;
+    });
   }
+}
+
+function titleFor(which) {
+  if (which === "today") return "Today";
+  if (which === "tomorrow") return "Tomorrow";
+  if (which === "week") return "This Week";
+  if (which === "month") return "This Month";
+  return which;
 }
 
 document.addEventListener("DOMContentLoaded", () => {
   setStatus("DOMContentLoaded fired");
-  setLoading();
   loadCalendar();
 });
