@@ -1,3 +1,4 @@
+/* ===== Portrait "Sign Stage" (laptop preview + real display) ===== */
 :root{
   --pad: 18px;
   --gap: 18px;
@@ -9,14 +10,37 @@
 
 *{ box-sizing: border-box; }
 
+/* The outer stage: centers the portrait canvas on any screen */
 body{
   margin:0;
-  padding: var(--pad);
   font-family: Arial, Helvetica, sans-serif;
-  background: linear-gradient(180deg, #0f2a44, #123b63);
+  background: #0b1e33;          /* laptop preview background */
   color:#fff;
+  overflow:hidden;              /* signage mode */
+}
+
+/* Centers the sign canvas */
+.stage{
+  width: 100vw;
+  height: 100vh;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+}
+
+/* This is the REAL "screen" (portrait 9:16 canvas) */
+.dashboard{
+  width: min(100vw, calc(100vh * (9 / 16)));
+  height: min(100vh, calc(100vw * (16 / 9)));
+
+  /* Your actual board styling lives in here */
+  padding: var(--pad);
+  background: linear-gradient(180deg, #0f2a44, #123b63);
   font-size: var(--text);
-  overflow:hidden; /* signage mode */
+  overflow:hidden;
+
+  display:flex;
+  flex-direction: column;
 }
 
 /* Header */
@@ -53,6 +77,13 @@ h2{
   overflow:hidden;
 }
 
+/* ===== Layout sizing inside the portrait canvas ===== */
+/* We give each section a share of the vertical height */
+.today-tomorrow{ flex: 0 0 20%; }
+.weekly{         flex: 0 0 18%; }
+.monthly{        flex: 0 0 30%; }
+.notes{          flex: 1 1 auto; } /* takes the remaining space */
+
 /* Today/Tomorrow */
 .today-tomorrow{
   display:grid;
@@ -61,25 +92,27 @@ h2{
   margin-bottom: var(--gap);
 }
 
-/* WEEK (force full width, 5 across, left aligned) */
+/* WEEK (5 across) */
 .weekly{
   width: 100%;
   margin-bottom: var(--gap);
+  overflow:hidden;
 }
 
 .week-grid{
   width: 100%;
+  height: calc(100% - 34px); /* leaves room for the h2 */
   display:grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
-  justify-content: start; /* important */
+  justify-content: stretch;
   align-items: stretch;
 }
 
 /* cards created by JS */
 .wk-card{
   background: rgba(255,255,255,0.08);
-  min-height: 140px;
+  min-height: 0;
 }
 
 .wk-head{
@@ -98,18 +131,20 @@ h2{
 .wk-item{ margin-bottom: 6px; }
 .wk-empty{ opacity:.65; }
 
-/* MONTH (full width 7 across) */
+/* MONTH (7 across) */
 .monthly{
   width: 100%;
   margin-bottom: var(--gap);
+  overflow:hidden;
 }
 
 .month-grid{
   width:100%;
+  height: calc(100% - 34px); /* leaves room for the h2 */
   display:grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 8px;
-  justify-content: start; /* important */
+  justify-content: stretch;
   align-items: stretch;
 }
 
@@ -117,7 +152,7 @@ h2{
   border-radius: 12px;
   padding: 8px;
   background: rgba(255,255,255,0.06);
-  min-height: 90px;
+  min-height: 0;
   overflow:hidden;
 }
 .m-empty{ background: transparent; }
@@ -147,12 +182,14 @@ h2{
   display:grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--gap);
+  overflow:hidden;
 }
 
 .notes-block{
   display:flex;
   flex-direction: column;
   gap: 10px;
+  overflow:hidden;
 }
 
 .notes-block iframe{
@@ -161,5 +198,5 @@ h2{
   border:none;
   background:#fff;
   border-radius: 10px;
-  min-height: 240px;
+  min-height: 0;
 }
