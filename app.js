@@ -1,5 +1,5 @@
-document.getElementById("status").textContent = "Status: NEW WEEK/MONTH FORMAT SCRIPT LOADED ✅";
-
+document.getElementById("status").textContent =
+  "Status: NEW WEEK/MONTH FORMAT SCRIPT LOADED ✅";
 
 const CONFIG = {
   proxyUrl:
@@ -11,11 +11,20 @@ const CONFIG = {
   weekMode: "mon-fri",
 
   // Month view shows the current month grid
-  monthMode: "current"
+  monthMode: "current",
 };
 
-function $(id) { return document.getElementById(id); }
+function $(id) {
+  return document.getElementById(id);
+}
 
+/**
+ * Your HTML currently uses:
+ *   #week-grid  (and/or #month-grid)
+ * and sometimes older versions used:
+ *   #week / #month
+ * This helper returns whichever exists.
+ */
 function getBox(which) {
   if (which === "week") return $("week") || $("week-grid");
   if (which === "month") return $("month") || $("month-grid");
@@ -65,7 +74,37 @@ function formatTimeRange(ev) {
   return `${s} – ${e}`;
 }
 
-// ---------- TODAY / TOMORROW (keep your simple format) ----------
+/**
+ * IMPORTANT LAYOUT FIX:
+ * If a header <h2> is inside #week-grid or #month-grid,
+ * it steals grid space (looks like a “giant left column”).
+ * This function moves the header OUT to the parent <section>
+ * so the grid can stretch full width.
+ */
+function hoistHeaderOutOfGrid(gridEl, fallbackText) {
+  if (!gridEl) return;
+  const parent = gridEl.closest("section");
+  if (!parent) return;
+
+  // If there is already a section-level h2, do nothing
+  const sectionH2 = parent.querySelector(":scope > h2");
+  if (sectionH2) return;
+
+  // If there is an h2 INSIDE the grid, move it out
+  const innerH2 = gridEl.querySelector("h2");
+  if (innerH2) {
+    innerH2.remove();
+    parent.insertBefore(innerH2, gridEl);
+    return;
+  }
+
+  // Otherwise create one
+  const h2 = document.createElement("h2");
+  h2.textContent = fallbackText || "";
+  parent.insertBefore(h2, gridEl);
+}
+
+// ---------- TODAY / TOMORROW ----------
 function renderTodayTomorrow(which, events) {
   const el = getBox(which);
   if (!el) return;
@@ -76,14 +115,16 @@ function renderTodayTomorrow(which, events) {
     return;
   }
 
-  const lines = events.map(ev => {
+  const lines = events.map((ev) => {
     const t = formatTimeRange(ev);
     const name = ev.title ? escapeHtml(ev.title) : "(No title)";
     const loc = ev.location ? `<br>${escapeHtml(ev.location)}` : "";
     return `${name}${t ? `<br>${escapeHtml(t)}` : ""}${loc}`;
   });
 
-  el.innerHTML = `<h2>${title}</h2><div style="line-height:1.25;">${lines.join("<br><br>")}</div>`;
+  el.innerHTML = `<h2>${title}</h2><div style="line-height:1.25;">${lines.join(
+    "<br><br>"
+  )}</div>`;
 }
 
 // ---------- WEEK (5 day cards) ----------
@@ -94,27 +135,36 @@ function getWeekStart(now) {
   // mon-fri mode:
   // JS getDay(): Sun=0, Mon=1, ... Sat=6
   const day = d.getDay();
-  const diffToMon = (day === 0) ? -6 : (1 - day); // Sunday -> go back 6
+  const diffToMon = day === 0 ? -6 : 1 - day; // Sunday -> go back 6
   return new Date(d.getFullYear(), d.getMonth(), d.getDate() + diffToMon);
 }
 
 function renderWeek(events, now) {
-  const el = getBox("week");
-  if (!el) return;
+  const gridEl = getBox("week");
+  if (!gridEl) return;
+
+  // Make sure the Week header isn't trapped inside the grid
+  hoistHeaderOutOfGrid(gridEl, "This Week");
 
   const weekStart = getWeekStart(now);
   const days = [];
-
   for (let i = 0; i < 5; i++) {
-    const dt = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i);
-    days.push(dt);
+    days.push(
+      new Date(
+        weekStart.getFullYear(),
+        weekStart.getMonth(),
+        weekStart.getDate() + i
+      )
+    );
   }
 
   // Group events by day
   const byDay = {};
-  days.forEach(d => { byDay[d.toDateString()] = []; });
+  days.forEach((d) => {
+    byDay[d.toDateString()] = [];
+  });
 
-  events.forEach(ev => {
+  events.forEach((ev) => {
     if (!ev._start) return;
     for (const d of days) {
       if (sameDay(ev._start, d)) {
@@ -124,38 +174,49 @@ function renderWeek(events, now) {
     }
   });
 
-  // Build cards
-  const cards = days.map(d => {
-    const label = d.toLocaleDateString([], { weekday: "short" });
-    const mmdd = d.toLocaleDateString([], { month: "numeric", day: "numeric" });
-    const items = (byDay[d.toDateString()] || []).sort((a,b)=>a._start-b._start);
+  // Build cards (NO extra wrapper div.week-grid)
+  const cards = days
+    .map((d) => {
+      const label = d.toLocaleDateString([], { weekday: "short" });
+      const mmdd = d.toLocaleDateString([], { month: "numeric", day: "numeric" });
+      const items = (byDay[d.toDateString()] || []).sort(
+        (a, b) => a._start - b._start
+      );
 
-    const body = items.length
-      ? items.map(ev => {
-          const t = formatTimeRange(ev);
-          const name = ev.title ? escapeHtml(ev.title) : "(No title)";
-          return `<div class="wk-item"><span class="wk-time">${escapeHtml(t)}</span>${name}</div>`;
-        }).join("")
-      : `<div class="wk-empty">No installs</div>`;
+      const body = items.length
+        ? items
+            .map((ev) => {
+              const t = formatTimeRange(ev);
+              const name = ev.title ? escapeHtml(ev.title) : "(No title)";
+              return `<div class="wk-item"><span class="wk-time">${escapeHtml(
+                t
+              )}</span>${name}</div>`;
+            })
+            .join("")
+        : `<div class="wk-empty">No installs</div>`;
 
-    return `
-      <div class="wk-card">
-        <div class="wk-head"><span>${label}</span><span>${mmdd}</span></div>
-        <div class="wk-body">${body}</div>
-      </div>
-    `;
-  }).join("");
+      return `
+        <div class="wk-card">
+          <div class="wk-head"><span>${label}</span><span>${mmdd}</span></div>
+          <div class="wk-body">${body}</div>
+        </div>
+      `;
+    })
+    .join("");
 
-  el.innerHTML = `<h2>This Week</h2><div class="week-grid">${cards}</div>`;
+  // Put ONLY cards inside #week-grid (no header, no nested grid)
+  gridEl.innerHTML = cards;
 }
 
 // ---------- MONTH (real calendar grid) ----------
 function renderMonth(events, now) {
-  const el = getBox("month");
-  if (!el) return;
+  const gridEl = getBox("month");
+  if (!gridEl) return;
+
+  // Make sure the Month header isn't trapped inside the grid
+  hoistHeaderOutOfGrid(gridEl, "This Month");
 
   const first = new Date(now.getFullYear(), now.getMonth(), 1);
-  const monthName = first.toLocaleDateString([], { month: "long", year: "numeric" });
   const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
   const daysInMonth = last.getDate();
 
@@ -163,8 +224,8 @@ function renderMonth(events, now) {
   const startDow = first.getDay(); // 0..6
   const totalCells = Math.ceil((startDow + daysInMonth) / 7) * 7;
 
-  // Group events by day-of-month
-  const byDate = {}; // key: YYYY-MM-DD
+  // Group events by YYYY-MM-DD
+  const byDate = {};
   function keyFor(d) {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -172,44 +233,16 @@ function renderMonth(events, now) {
     return `${y}-${m}-${da}`;
   }
 
-  events.forEach(ev => {
+  events.forEach((ev) => {
     if (!ev._start) return;
-    if (ev._start.getMonth() !== now.getMonth() || ev._start.getFullYear() !== now.getFullYear()) return;
+    if (
+      ev._start.getMonth() !== now.getMonth() ||
+      ev._start.getFullYear() !== now.getFullYear()
+    )
+      return;
     const k = keyFor(ev._start);
     (byDate[k] ||= []).push(ev);
   });
-
-  // Cells
-  let cells = "";
-  for (let i = 0; i < totalCells; i++) {
-    const dayNum = i - startDow + 1;
-    if (dayNum < 1 || dayNum > daysInMonth) {
-      cells += `<div class="m-cell m-empty"></div>`;
-      continue;
-    }
-
-    const d = new Date(now.getFullYear(), now.getMonth(), dayNum);
-    const k = keyFor(d);
-    const items = (byDate[k] || []).sort((a,b)=>a._start-b._start);
-
-    const maxShow = 3;
-    const shown = items.slice(0, maxShow).map(ev => {
-      const t = formatTimeRange(ev);
-      const name = ev.title ? escapeHtml(ev.title) : "(No title)";
-      // keep it short in month view
-      return `<div class="m-item">${escapeHtml(t)} ${name}</div>`;
-    }).join("");
-
-    const more = items.length > maxShow ? `<div class="m-more">+${items.length - maxShow} more</div>` : "";
-
-    const isToday = sameDay(startOfDay(now), d);
-    cells += `
-      <div class="m-cell ${isToday ? "m-today" : ""}">
-        <div class="m-day">${dayNum}</div>
-        <div class="m-events">${shown}${more}</div>
-      </div>
-    `;
-  }
 
   const dowRow = `
     <div class="m-cell" style="background:transparent; font-weight:700; text-align:center;">Sun</div>
@@ -221,16 +254,45 @@ function renderMonth(events, now) {
     <div class="m-cell" style="background:transparent; font-weight:700; text-align:center;">Sat</div>
   `;
 
-  el.innerHTML = `
-    <div class="month-head">
-      <h2 style="margin:0;">This Month</h2>
-      <div style="opacity:.9; font-weight:700;">${monthName}</div>
-    </div>
-    <div class="month-grid">
-      ${dowRow}
-      ${cells}
-    </div>
-  `;
+  let cells = "";
+  for (let i = 0; i < totalCells; i++) {
+    const dayNum = i - startDow + 1;
+    if (dayNum < 1 || dayNum > daysInMonth) {
+      cells += `<div class="m-cell m-empty"></div>`;
+      continue;
+    }
+
+    const d = new Date(now.getFullYear(), now.getMonth(), dayNum);
+    const k = keyFor(d);
+    const items = (byDate[k] || []).sort((a, b) => a._start - b._start);
+
+    const maxShow = 3;
+    const shown = items
+      .slice(0, maxShow)
+      .map((ev) => {
+        const t = formatTimeRange(ev);
+        const name = ev.title ? escapeHtml(ev.title) : "(No title)";
+        return `<div class="m-item">${escapeHtml(t)} ${name}</div>`;
+      })
+      .join("");
+
+    const more =
+      items.length > maxShow
+        ? `<div class="m-more">+${items.length - maxShow} more</div>`
+        : "";
+
+    const isToday = sameDay(startOfDay(now), d);
+
+    cells += `
+      <div class="m-cell ${isToday ? "m-today" : ""}">
+        <div class="m-day">${dayNum}</div>
+        <div class="m-events">${shown}${more}</div>
+      </div>
+    `;
+  }
+
+  // Put ONLY the grid cells inside #month-grid (no month-head wrapper)
+  gridEl.innerHTML = `${dowRow}${cells}`;
 }
 
 // ---------- main ----------
@@ -242,10 +304,15 @@ async function loadCalendar() {
     if (!res.ok) throw new Error(`Calendar fetch failed (HTTP ${res.status})`);
 
     const data = await res.json();
-    if (!data || !Array.isArray(data.events)) throw new Error("Calendar returned unexpected JSON");
+    if (!data || !Array.isArray(data.events))
+      throw new Error("Calendar returned unexpected JSON");
 
     const events = data.events
-      .map((ev) => ({ ...ev, _start: parseDateSafe(ev.start), _end: parseDateSafe(ev.end) }))
+      .map((ev) => ({
+        ...ev,
+        _start: parseDateSafe(ev.start),
+        _end: parseDateSafe(ev.end),
+      }))
       .filter((ev) => ev._start)
       .sort((a, b) => a._start - b._start);
 
@@ -267,7 +334,10 @@ async function loadCalendar() {
     setStatus(`JS error: ${e.message}`);
     ["today", "tomorrow", "week", "month"].forEach((w) => {
       const el = getBox(w);
-      if (el) el.innerHTML = `<h2>${titleFor(w)}</h2><p style="opacity:.9;">${escapeHtml(e.message)}</p>`;
+      if (el)
+        el.innerHTML = `<h2>${titleFor(w)}</h2><p style="opacity:.9;">${escapeHtml(
+          e.message
+        )}</p>`;
     });
   }
 }
@@ -284,3 +354,4 @@ document.addEventListener("DOMContentLoaded", () => {
   setStatus("DOMContentLoaded fired");
   loadCalendar();
 });
+
