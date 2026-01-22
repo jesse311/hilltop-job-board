@@ -1,3 +1,4 @@
+
 /* ===== Fullscreen Signage Layout (fills whatever the device gives us) ===== */
 :root{
   /* Use clamp() so it scales on TV vs laptop */
@@ -225,4 +226,19 @@ h2{
   font-size: 16px;
   letter-spacing: 0.2px;
   white-space: nowrap;
+}
+
+/* ===== Weather Header Badges ===== */
+.wx-badge{
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.12);
+  font-weight: 800;
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+.wx-badge.wx-urgent{
+  background: rgba(255,59,48,0.25);
+  color: #ff3b30;
 }
