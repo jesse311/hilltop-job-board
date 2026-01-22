@@ -177,16 +177,29 @@
     return $(which);
   }
 
-  function renderTodayTomorrow(which, events) {
+  function renderPanelTitle_(title, badgeText, badgeUrgent) {
+    var safeTitle = escapeHtml(title);
+    var b = (badgeText !== undefined && badgeText !== null) ? String(badgeText) : "";
+    b = b.replace(/^\s+|\s+$/g, "");
+
+    if (!b) return safeTitle;
+
+    var cls = "wx-badge" + (badgeUrgent ? " wx-urgent" : "");
+    // badgeText is treated as text, not HTML (safer + Tizen-friendly)
+    return safeTitle + ' <span class="' + cls + '">' + escapeHtml(b) + "</span>";
+  }
+
+  function renderTodayTomorrow(which, events, badgeText, badgeUrgent) {
     var el = getBox(which);
     if (!el) return;
 
     var title = (which === "today") ? "Today" : "Tomorrow";
     var fitClass = (which === "today") ? "fit-today" : "fit-tomorrow";
+    var titleHtml = renderPanelTitle_(title, badgeText, badgeUrgent);
 
     if (!events || !events.length) {
       el.innerHTML =
-        '<div class="panel-title">' + title + '</div>' +
+        '<div class="panel-title">' + titleHtml + '</div>' +
         '<div class="panel-body ' + fitClass + '"><div class="fit-text">No events.</div></div>';
       return;
     }
@@ -201,7 +214,7 @@
     }
 
     el.innerHTML =
-      '<div class="panel-title">' + title + '</div>' +
+      '<div class="panel-title">' + titleHtml + '</div>' +
       '<div class="panel-body ' + fitClass + '"><div class="fit-text">' + out.join("<br>") + "</div></div>";
   }
 
@@ -591,8 +604,14 @@
             if (sameDay(e._start, tomorrow0)) tomorrowEvents.push(e);
           }
 
-          renderTodayTomorrow("today", todayEvents);
-          renderTodayTomorrow("tomorrow", tomorrowEvents);
+          // NEW: header badges from Apps Script (day-specific “check engine light”)
+          var todayBadgeText = (data && data.todayWxBadge !== undefined && data.todayWxBadge !== null) ? String(data.todayWxBadge) : "";
+          var tomorrowBadgeText = (data && data.tomorrowWxBadge !== undefined && data.tomorrowWxBadge !== null) ? String(data.tomorrowWxBadge) : "";
+          var todayBadgeUrgent = !!(data && data.todayWxUrgent);
+          var tomorrowBadgeUrgent = !!(data && data.tomorrowWxUrgent);
+
+          renderTodayTomorrow("today", todayEvents, todayBadgeText, todayBadgeUrgent);
+          renderTodayTomorrow("tomorrow", tomorrowEvents, tomorrowBadgeText, tomorrowBadgeUrgent);
           renderWeek(events, now);
           renderMonth(events, now);
 
