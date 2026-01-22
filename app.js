@@ -27,7 +27,7 @@
 
     // Weather tickers are optional until the backend endpoints are added.
     // Set to true AFTER we add Apps Script support for weather.
-    weatherTickersEnabled: false
+    weatherTickersEnabled: True
   };
 
   function $(id) { return document.getElementById(id); }
