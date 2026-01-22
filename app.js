@@ -1,3 +1,4 @@
+
 /* =========================================================
    Hilltop Job Board - SIGNAGE SAFE + AUTO REFRESH
    - NO fetch()
@@ -380,14 +381,21 @@
 
     stopTicker(laneId);
 
-    var raw = (textEl.textContent || "").replace(/^\s+|\s+$/g, "");
+    var isHtml = String(textEl.getAttribute("data-html") || "") === "1";
+    var raw = (isHtml ? (textEl.innerHTML || "") : (textEl.textContent || "")).replace(/^\s+|\s+$/g, "");
     if (!raw) return;
 
     var s = raw;
-    var sep = " • ";
-    while (s.length < 80) s = s + sep + raw;
+    var sep = isHtml ? ' <span class="ticker-sep">•</span> ' : " • ";
+    // Ensure the run is long enough to scroll smoothly
+    var safety = 0;
+    while ((isHtml ? s.replace(/<[^>]+>/g, "").length : s.length) < 80 && safety < 20) { s = s + sep + raw; safety++; }
 
-    textEl.textContent = s + sep + s;
+    if (isHtml) {
+      textEl.innerHTML = s + sep + s;
+    } else {
+      textEl.textContent = s + sep + s;
+    }
 
     requestAnimationFrame(function () {
       var winW = windowEl.clientWidth;
@@ -544,11 +552,111 @@
     );
   }
 
-  function loadTickers() {
+  
+  // =========================================================
+  // COMBINED TOP WEATHER TICKER (SHOP + JOBS in one lane)
+  // =========================================================
+  var _wxShopLine = null;
+  var _wxJobsLine = null;
+
+  function getCombinedWeatherTargets() {
+    // Preferred IDs for the combined top weather lane
+    var laneIds = ["ticker-weather", "ticker-top-weather", "tickerWeatherTop"];
+    var textIds = ["ticker-weather-text", "ticker-top-weather-text", "tickerWeatherTopText"];
+
+    var laneId = null;
+    for (var i = 0; i < laneIds.length; i++) {
+      if ($(laneIds[i])) { laneId = laneIds[i]; break; }
+    }
+    var textEl = firstEl(textIds);
+    if (!laneId || !textEl) return null;
+    return { laneId: laneId, textEl: textEl };
+  }
+
+  function renderCombinedWeather(t) {
+    if (!t) return;
+
+    // If one side hasn't loaded yet, keep placeholder
+    var shopStr = _wxShopLine || "Loading…";
+    var jobsStr = _wxJobsLine || "Loading…";
+
+    // Strip the redundant prefixes so the combined lane reads clean
+    shopStr = String(shopStr).replace(/^SHOP WX:\s*/i, "");
+    jobsStr = String(jobsStr).replace(/^JOB WX:\s*/i, "");
+
+    var html =
+      '<span class="wx-tag wx-shop">SHOP</span> ' +
+      '<span class="wx-val">' + escapeHtml(shopStr) + '</span>' +
+      '<span class="wx-break">⎮⎮</span>' +
+      '<span class="wx-tag wx-jobs">JOBS</span> ' +
+      '<span class="wx-val">' + escapeHtml(jobsStr) + '</span>';
+
+    var oldHtml = String(t.textEl.getAttribute("data-last") || "");
+    t.textEl.setAttribute("data-last", html);
+    t.textEl.setAttribute("data-html", "1");
+
+    if (html !== oldHtml) {
+      t.textEl.innerHTML = html;
+      startTicker(t.laneId, t.textEl);
+    } else {
+      if (!_tickerAnimations[t.laneId]) startTicker(t.laneId, t.textEl);
+    }
+  }
+
+  function loadCombinedWeatherTicker() {
+    if (!CONFIG.weatherTickersEnabled) return;
+
+    var t = getCombinedWeatherTargets();
+    if (!t) return;
+
+    var base = CONFIG.proxyUrl.replace(/\/$/, "");
+
+    // SHOP
+    jsonp(
+      base + "?mode=weather&kind=shop",
+      function (data) {
+        if (!data || data.ok !== true) {
+          _wxShopLine = "SHOP WX: unavailable";
+        } else {
+          _wxShopLine = formatWeatherLine("shop", data);
+        }
+        renderCombinedWeather(t);
+      },
+      function (err) {
+        _wxShopLine = "SHOP WX: " + (err && err.message ? err.message : "failed");
+        renderCombinedWeather(t);
+      }
+    );
+
+    // JOBS
+    jsonp(
+      base + "?mode=weather&kind=jobs",
+      function (data) {
+        if (!data || data.ok !== true) {
+          _wxJobsLine = "JOB WX: unavailable";
+        } else {
+          _wxJobsLine = formatWeatherLine("jobs", data);
+        }
+        renderCombinedWeather(t);
+      },
+      function (err) {
+        _wxJobsLine = "JOB WX: " + (err && err.message ? err.message : "failed");
+        renderCombinedWeather(t);
+      }
+    );
+  }
+
+function loadTickers() {
     loadTicker("master");
     loadTicker("install");
-    loadWeatherTicker("shop");
-    loadWeatherTicker("jobs");
+
+    // Prefer the combined top weather lane if it exists; otherwise fall back to the two-lane layout
+    if (getCombinedWeatherTargets()) {
+      loadCombinedWeatherTicker();
+    } else {
+      loadWeatherTicker("shop");
+      loadWeatherTicker("jobs");
+    }
   }
 
   function restartTickers() {
@@ -559,10 +667,16 @@
 
     // Weather lanes (if present + enabled)
     if (CONFIG.weatherTickersEnabled) {
-      var shopT = getWeatherTickerTargets("shop");
-      var jobsT = getWeatherTickerTargets("jobs");
-      if (shopT && shopT.textEl) { stopTicker(shopT.laneId); startTicker(shopT.laneId, shopT.textEl); }
-      if (jobsT && jobsT.textEl) { stopTicker(jobsT.laneId); startTicker(jobsT.laneId, jobsT.textEl); }
+      var comb = getCombinedWeatherTargets();
+      if (comb && comb.textEl) {
+        stopTicker(comb.laneId);
+        startTicker(comb.laneId, comb.textEl);
+      } else {
+        var shopT = getWeatherTickerTargets("shop");
+        var jobsT = getWeatherTickerTargets("jobs");
+        if (shopT && shopT.textEl) { stopTicker(shopT.laneId); startTicker(shopT.laneId, shopT.textEl); }
+        if (jobsT && jobsT.textEl) { stopTicker(jobsT.laneId); startTicker(jobsT.laneId, jobsT.textEl); }
+      }
     }
   }
 
