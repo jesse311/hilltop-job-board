@@ -15,6 +15,23 @@
     <!-- DASHBOARD = the portrait canvas (your real signage layout lives in here) -->
     <div class="dashboard">
 
+
+      <!-- TOP WEATHER TICKER (combined SHOP + JOB weather) -->
+      <section class="top-weather" aria-label="Top weather ticker">
+        <div class="ticker-lane ticker-weather" id="ticker-weather" data-kind="weather">
+          <div class="ticker-label">WEATHER</div>
+          <div class="ticker-window">
+            <div class="ticker-track">
+              <div class="ticker-text" id="ticker-weather-text" data-html="1">
+                <span class="wx-tag wx-shop">SHOP</span> <span class="wx-val">Loading…</span>
+                <span class="wx-break">⎮⎮</span>
+                <span class="wx-tag wx-jobs">JOBS</span> <span class="wx-val">Loading…</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <header class="header">
         <img src="logo.png" alt="Hilltop Signs" class="logo" />
         <h1>Hilltop Job Board</h1>
@@ -45,9 +62,8 @@
            JS will fill:
              #ticker-master-text
              #ticker-install-text
-             #ticker-shopwx-text  (NEW)
-             #ticker-jobwx-text   (NEW)
-      -->
+             #ticker-weather-text  (combined SHOP + JOB)
+-->
       <section class="tickers" aria-label="Bottom tickers">
         <div class="ticker-lane" id="ticker-master" data-doc="master">
           <div class="ticker-label">HILLTOP MASTER</div>
@@ -71,30 +87,7 @@
           </div>
         </div>
 
-        <!-- NEW: SHOP WEATHER ticker lane -->
-        <div class="ticker-lane" id="ticker-shopwx" data-kind="shop">
-          <div class="ticker-label">SHOP WEATHER</div>
-          <div class="ticker-window">
-            <div class="ticker-track">
-              <div class="ticker-text" id="ticker-shopwx-text">
-                SHOP WX: (weather backend not enabled yet)
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- NEW: TODAY JOB WEATHER ticker lane -->
-        <div class="ticker-lane" id="ticker-jobwx" data-kind="jobs">
-          <div class="ticker-label">TODAY JOB WEATHER</div>
-          <div class="ticker-window">
-            <div class="ticker-track">
-              <div class="ticker-text" id="ticker-jobwx-text">
-                JOB WX: (weather backend not enabled yet)
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
 
       <script>
         document.getElementById("status").textContent = "Status: INLINE JS IS RUNNING";
