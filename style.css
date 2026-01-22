@@ -242,3 +242,31 @@ h2{
   background: rgba(255,59,48,0.25);
   color: #ff3b30;
 }
+
+/* ===== Panel Framework Refinements (Week / Month) =====
+   Goal: restore clearer "boxed" structure on large displays without changing layout/JS.
+*/
+.wk-card{
+  /* slightly stronger separation than the dashboard gradient */
+  background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.08));
+  border: 1px solid rgba(255,255,255,0.16);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.30);
+}
+
+.wk-card h4{
+  /* a touch more emphasis for the day header */
+  opacity: 0.95;
+}
+
+.m-cell{
+  background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.22);
+}
+
+.m-cell.m-empty{
+  /* keep empties subtle but still framed */
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: none;
+}
