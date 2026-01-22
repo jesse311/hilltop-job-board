@@ -228,44 +228,29 @@ h2{
   white-space: nowrap;
 }
 
-/* ===== Weather Header Badges ===== */
-.wx-badge{
-  margin-left: 8px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: rgba(255,255,255,0.12);
-  font-weight: 800;
-  font-size: 0.9em;
-  white-space: nowrap;
-}
-.wx-badge.wx-urgent{
-  background: rgba(255,59,48,0.25);
-  color: #ff3b30;
-}
-
-/* ===== Panel Framework Refinements (Week / Month) =====
-   Goal: restore clearer "boxed" structure on large displays without changing layout/JS.
+/* ===== Fix: Class-name mismatch (JS uses week-card/month-cell) =====
+   Your app.js renders .week-card and .month-cell, but the CSS was styling .wk-card and .m-cell.
+   These aliases restore the panel frames without changing JS.
 */
-.wk-card{
-  /* slightly stronger separation than the dashboard gradient */
+.week-card{
   background: linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.08));
   border: 1px solid rgba(255,255,255,0.16);
   box-shadow: 0 10px 24px rgba(0,0,0,0.30);
+  border-radius: 14px;
 }
 
-.wk-card h4{
-  /* a touch more emphasis for the day header */
+.week-card-title{
   opacity: 0.95;
 }
 
-.m-cell{
+.month-cell{
   background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
   border: 1px solid rgba(255,255,255,0.12);
   box-shadow: 0 8px 18px rgba(0,0,0,0.22);
+  border-radius: 12px;
 }
 
-.m-cell.m-empty{
-  /* keep empties subtle but still framed */
+.month-cell.empty{
   background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.08);
   box-shadow: none;
