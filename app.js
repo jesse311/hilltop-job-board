@@ -23,10 +23,23 @@
     // Refresh rates (ms)
     tickerRefreshMs: 2 * 60 * 1000,   // tickers update every 2 min
     calendarRefreshMs: 2 * 60 * 1000, // calendar update every 2 min
-    pageReloadMs: 10 * 60 * 1000      // full page reload every 10 min
+    pageReloadMs: 10 * 60 * 1000,     // full page reload every 10 min
+
+    // Weather tickers are optional until the backend endpoints are added.
+    // Set to true AFTER we add Apps Script support for weather.
+    weatherTickersEnabled: false
   };
 
   function $(id) { return document.getElementById(id); }
+
+  function firstEl(ids) {
+    // ids: array of element IDs
+    for (var i = 0; i < ids.length; i++) {
+      var el = $(ids[i]);
+      if (el) return el;
+    }
+    return null;
+  }
 
   function setStatus(text) {
     var s = $("status");
@@ -121,12 +134,14 @@
 
     var lo = min;
     var hi = max;
+
     while (hi - lo > 0.25) {
       var mid = (lo + hi) / 2;
       target.style.fontSize = mid + "px";
       if (_fitsBox(box)) lo = mid;
       else hi = mid;
     }
+
     target.style.fontSize = lo + "px";
   }
 
@@ -134,9 +149,9 @@
   function queueFitAll() {
     if (_fitQueued) return;
     _fitQueued = true;
+
     requestAnimationFrame(function () {
       _fitQueued = false;
-
       var i, boxes;
 
       boxes = document.querySelectorAll(".fit-today");
@@ -154,7 +169,7 @@
   }
 
   // =========================================================
-  // RENDER HELPERS
+  // RENDER: TODAY / TOMORROW
   // =========================================================
   function getBox(which) {
     if (which === "week") return $("week") || $("week-grid");
@@ -171,8 +186,8 @@
 
     if (!events || !events.length) {
       el.innerHTML =
-        '<h2>' + title + '</h2>' +
-        '<div class="fit-box ' + fitClass + '"><div class="fit-text">No events.</div></div>';
+        '<div class="panel-title">' + title + '</div>' +
+        '<div class="panel-body ' + fitClass + '"><div class="fit-text">No events.</div></div>';
       return;
     }
 
@@ -181,13 +196,13 @@
       var ev = events[i];
       var t = formatTimeRange(ev);
       var name = ev.title ? escapeHtml(ev.title) : "(No title)";
-      var loc = ev.location ? ("<br>" + escapeHtml(ev.location)) : "";
-      out.push(name + (t ? ("<br>" + escapeHtml(t)) : "") + loc);
+      var loc = ev.location ? (" — " + escapeHtml(ev.location)) : "";
+      out.push(name + (t ? (" (" + escapeHtml(t) + ")") : "") + loc);
     }
 
     el.innerHTML =
-      '<h2>' + title + '</h2>' +
-      '<div class="fit-box ' + fitClass + '"><div class="fit-text">' + out.join("<br><br>") + "</div></div>";
+      '<div class="panel-title">' + title + '</div>' +
+      '<div class="panel-body ' + fitClass + '"><div class="fit-text">' + out.join("<br>") + "</div></div>";
   }
 
   // =========================================================
@@ -196,6 +211,7 @@
   function getWeekStart(now) {
     var d = startOfDay(now);
     if (CONFIG.weekMode === "next-5") return d;
+
     var day = d.getDay(); // 0 Sun .. 6 Sat
     var diffToMon = (day === 0) ? -6 : (1 - day);
     return new Date(d.getFullYear(), d.getMonth(), d.getDate() + diffToMon);
@@ -206,17 +222,20 @@
     if (!gridEl) return;
 
     var weekStart = getWeekStart(now);
+
     var days = [];
     for (var i = 0; i < 5; i++) {
       days.push(new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + i));
     }
 
+    // bucket by day string
     var byDay = {};
     for (i = 0; i < days.length; i++) byDay[days[i].toDateString()] = [];
 
     for (i = 0; i < events.length; i++) {
       var ev = events[i];
       if (!ev._start) continue;
+
       for (var j = 0; j < days.length; j++) {
         if (sameDay(ev._start, days[j])) {
           byDay[days[j].toDateString()].push(ev);
@@ -247,9 +266,9 @@
       }
 
       cards.push(
-        '<div class="wk-card fit-box fit-week">' +
-          '<div class="wk-head"><span>' + label + '</span><span>' + mmdd + '</span></div>' +
-          '<div class="wk-body"><div class="fit-text">' + body.join("<br>") + '</div></div>' +
+        '<div class="week-card fit-week">' +
+          '<div class="week-card-title">' + label + ' <span class="muted">' + mmdd + "</span></div>" +
+          '<div class="week-card-body fit-text">' + body.join("<br>") + "</div>" +
         "</div>"
       );
     }
@@ -258,7 +277,7 @@
   }
 
   // =========================================================
-  // MONTH
+  // MONTH (simple)
   // =========================================================
   function pad2(n) { return (n < 10 ? "0" : "") + n; }
 
@@ -287,7 +306,7 @@
     for (i = 0; i < totalCells; i++) {
       var dayNum = i - startDow + 1;
       if (dayNum < 1 || dayNum > daysInMonth) {
-        cells.push('<div class="m-cell m-empty"></div>');
+        cells.push('<div class="month-cell empty"></div>');
         continue;
       }
 
@@ -308,14 +327,24 @@
 
       var isToday = sameDay(startOfDay(now), d);
       cells.push(
-        '<div class="m-cell fit-box fit-month' + (isToday ? " m-today" : "") + '">' +
-          '<div class="m-day">' + dayNum + '</div>' +
-          '<div class="m-events"><div class="fit-text">' + (lines.join("<br>") || "") + "</div></div>" +
+        '<div class="month-cell' + (isToday ? " today" : "") + ' fit-month">' +
+          '<div class="month-day">' + dayNum + "</div>" +
+          '<div class="month-body fit-text">' + (lines.join("<br>") || "") + "</div>" +
         "</div>"
       );
     }
 
-    gridEl.innerHTML = cells.join("");
+    // DOW header row (keep your existing CSS grid)
+    var dowRow =
+      '<div class="month-dow">Sun</div>' +
+      '<div class="month-dow">Mon</div>' +
+      '<div class="month-dow">Tue</div>' +
+      '<div class="month-dow">Wed</div>' +
+      '<div class="month-dow">Thu</div>' +
+      '<div class="month-dow">Fri</div>' +
+      '<div class="month-dow">Sat</div>';
+
+    gridEl.innerHTML = dowRow + cells.join("");
   }
 
   // =========================================================
@@ -408,9 +437,105 @@
     );
   }
 
+  // =========================================================
+  // WEATHER TICKERS (optional, behind CONFIG.weatherTickersEnabled)
+  // Back-end (Apps Script) will be added later:
+  //   - ?mode=weather&kind=shop
+  //   - ?mode=weather&kind=jobs
+  // Expected response (either form is fine):
+  //   { ok:true, text:"..." }
+  //   { ok:true, kind:"shop", weather:{ temp_f:38, wind_mph:12, wind_dir:"NW", pop_pct:60 }, place:"Shop" }
+  // =========================================================
+  function degToCardinal(deg) {
+    if (deg === null || deg === undefined || isNaN(Number(deg))) return "";
+    var dirs = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
+    var idx = Math.round(((Number(deg) % 360) / 22.5)) % 16;
+    return dirs[idx];
+  }
+
+  function formatWeatherLine(kind, data) {
+    // kind: "shop" or "jobs"
+    if (!data) return "";
+    if (data.text) return String(data.text);
+
+    var w = data.weather || {};
+    var temp = (w.temp_f !== undefined && w.temp_f !== null) ? (String(w.temp_f) + "°F") : "";
+    var windSpd = (w.wind_mph !== undefined && w.wind_mph !== null) ? (String(w.wind_mph) + " mph") : "";
+    var windDir = w.wind_dir ? String(w.wind_dir) : (w.wind_dir_deg !== undefined ? degToCardinal(w.wind_dir_deg) : "");
+    var pop = (w.pop_pct !== undefined && w.pop_pct !== null) ? (String(w.pop_pct) + "%") : "";
+
+    var label = (kind === "shop") ? "SHOP WX" : "JOB WX";
+    var parts = [];
+    if (temp) parts.push(temp);
+    if (pop) parts.push("POP " + pop);
+    if (windSpd) parts.push("Wind " + windSpd + (windDir ? (" " + windDir) : ""));
+    return label + ": " + (parts.join(" • ") || "Loading…");
+  }
+
+  function getWeatherTickerTargets(kind) {
+    // We support multiple IDs so you can add HTML later without re-editing JS.
+    // Preferred IDs:
+    //   LANE: ticker-shopwx / ticker-jobwx
+    //   TEXT: ticker-shopwx-text / ticker-jobwx-text
+    var laneIds = (kind === "shop")
+      ? ["ticker-shopwx", "ticker-shop-weather", "tickerShopWeather", "ticker-weather-shop"]
+      : ["ticker-jobwx", "ticker-jobs-weather", "tickerJobsWeather", "ticker-weather-jobs"];
+    var textIds = (kind === "shop")
+      ? ["ticker-shopwx-text", "ticker-shop-weather-text", "tickerShopWeatherText", "ticker-weather-shop-text"]
+      : ["ticker-jobwx-text", "ticker-jobs-weather-text", "tickerJobsWeatherText", "ticker-weather-jobs-text"];
+
+    // pick first existing lane id
+    var laneId = null;
+    for (var i = 0; i < laneIds.length; i++) {
+      if ($(laneIds[i])) { laneId = laneIds[i]; break; }
+    }
+    var textEl = firstEl(textIds);
+
+    if (!laneId || !textEl) return null;
+    return { laneId: laneId, textEl: textEl };
+  }
+
+  function loadWeatherTicker(kind) {
+    if (!CONFIG.weatherTickersEnabled) return;
+
+    var t = getWeatherTickerTargets(kind);
+    if (!t) return; // HTML not present yet
+
+    var base = CONFIG.proxyUrl.replace(/\/$/, "");
+    var url = base + "?mode=weather&kind=" + encodeURIComponent(kind);
+
+    jsonp(
+      url,
+      function (data) {
+        if (!data || data.ok !== true) {
+          t.textEl.textContent = ((kind === "shop") ? "SHOP WX" : "JOB WX") + ": unavailable";
+          stopTicker(t.laneId);
+          return;
+        }
+
+        var newText = formatWeatherLine(kind, data);
+        var oldText = String(t.textEl.getAttribute("data-last") || "");
+        t.textEl.setAttribute("data-last", newText);
+
+        if (newText !== oldText) {
+          t.textEl.textContent = newText;
+          startTicker(t.laneId, t.textEl);
+        } else {
+          if (!_tickerAnimations[t.laneId]) startTicker(t.laneId, t.textEl);
+        }
+      },
+      function (err) {
+        t.textEl.textContent = ((kind === "shop") ? "SHOP WX" : "JOB WX") + ": " + (err && err.message ? err.message : "failed");
+        stopTicker(t.laneId);
+      }
+    );
+  }
+
   function loadTickers() {
     loadTicker("master");
     loadTicker("install");
+    loadWeatherTicker("shop");
+    loadWeatherTicker("jobs");
   }
 
   function restartTickers() {
@@ -418,6 +543,14 @@
     var installEl = $("ticker-install-text");
     if (masterEl) { stopTicker("ticker-master"); startTicker("ticker-master", masterEl); }
     if (installEl) { stopTicker("ticker-install"); startTicker("ticker-install", installEl); }
+
+    // Weather lanes (if present + enabled)
+    if (CONFIG.weatherTickersEnabled) {
+      var shopT = getWeatherTickerTargets("shop");
+      var jobsT = getWeatherTickerTargets("jobs");
+      if (shopT && shopT.textEl) { stopTicker(shopT.laneId); startTicker(shopT.laneId, shopT.textEl); }
+      if (jobsT && jobsT.textEl) { stopTicker(jobsT.laneId); startTicker(jobsT.laneId, jobsT.textEl); }
+    }
   }
 
   // =========================================================
@@ -433,10 +566,6 @@
       url,
       function (data) {
         try {
-          if (!data || !data.events || !data.events.length) {
-            setStatus("Loaded. Events total: 0");
-          }
-
           var events = [];
           for (var i = 0; i < (data.events || []).length; i++) {
             var ev = data.events[i];
@@ -479,17 +608,14 @@
     );
   }
 
-  // =========================================================
-  // HARD RELOAD (anti-freeze + forces latest JS/CSS)
-  // =========================================================
-  function hardReload() {
-    // “Turn it off and back on”
-    try {
-      window.location.reload(true);
-    } catch (e) {
-      // Some browsers ignore the boolean. Still reload.
-      window.location.reload();
-    }
+  function schedulePageReload() {
+    if (!CONFIG.pageReloadMs || CONFIG.pageReloadMs < 60000) return;
+    setTimeout(function () {
+      try {
+        setStatus("Reloading page…");
+        location.reload(true);
+      } catch (e) {}
+    }, CONFIG.pageReloadMs);
   }
 
   // =========================================================
@@ -500,35 +626,21 @@
     restartTickers();
   });
 
-  document.addEventListener("visibilitychange", function () {
-    // If screen/app resumes after being in background, refresh data
-    if (!document.hidden) {
-      loadCalendar();
-      loadTickers();
-      queueFitAll();
-      restartTickers();
-    }
-  });
-
   document.addEventListener("DOMContentLoaded", function () {
     setStatus("Booting…");
 
-    // Initial load
     loadCalendar();
     loadTickers();
 
-    // Keep data fresh (no human refresh needed)
-    setInterval(loadTickers, CONFIG.tickerRefreshMs);
     setInterval(loadCalendar, CONFIG.calendarRefreshMs);
-
-    // Keep the whole page healthy (beats caching + stuck states)
-    setInterval(hardReload, CONFIG.pageReloadMs);
+    setInterval(loadTickers, CONFIG.tickerRefreshMs);
 
     // One extra fit after fonts settle
     setTimeout(function () {
       queueFitAll();
       restartTickers();
-    }, 900);
-  });
+    }, 800);
 
+    schedulePageReload();
+  });
 })();
