@@ -42,7 +42,12 @@
       </section>
 
       <!-- TICKERS (replaces the big Notes boxes)
-           JS will fill #ticker-master-text and #ticker-install-text -->
+           JS will fill:
+             #ticker-master-text
+             #ticker-install-text
+             #ticker-shopwx-text  (NEW)
+             #ticker-jobwx-text   (NEW)
+      -->
       <section class="tickers" aria-label="Bottom tickers">
         <div class="ticker-lane" id="ticker-master" data-doc="master">
           <div class="ticker-label">HILLTOP MASTER</div>
@@ -61,6 +66,30 @@
             <div class="ticker-track">
               <div class="ticker-text" id="ticker-install-text">
                 Loading Install notes…
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW: SHOP WEATHER ticker lane -->
+        <div class="ticker-lane" id="ticker-shopwx" data-kind="shop">
+          <div class="ticker-label">SHOP WEATHER</div>
+          <div class="ticker-window">
+            <div class="ticker-track">
+              <div class="ticker-text" id="ticker-shopwx-text">
+                SHOP WX: (weather backend not enabled yet)
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW: TODAY JOB WEATHER ticker lane -->
+        <div class="ticker-lane" id="ticker-jobwx" data-kind="jobs">
+          <div class="ticker-label">TODAY JOB WEATHER</div>
+          <div class="ticker-window">
+            <div class="ticker-track">
+              <div class="ticker-text" id="ticker-jobwx-text">
+                JOB WX: (weather backend not enabled yet)
               </div>
             </div>
           </div>
