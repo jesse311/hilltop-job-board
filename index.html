@@ -1,33 +1,41 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <title>Hilltop Job Board</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <link rel="stylesheet" href="style.css?v=9244" />
+  <link rel="stylesheet" href="style.css?v=20260122_1" />
 </head>
-
 <body>
-
-  <!-- STAGE = centers the portrait "sign" on any screen (laptop preview or real display) -->
   <div class="stage">
-    <!-- DASHBOARD = the portrait canvas (your real signage layout lives in here) -->
     <div class="dashboard">
 
       <header class="header">
-        <img src="logo.png" alt="Hilltop Signs" class="logo" />
-        <h1>Hilltop Job Board</h1>
+        <img src="logo.png" alt="Hilltop Signs" class="logo"
+             onerror="this.onerror=null;
+               if(this.src.indexOf('logo.jpg')===-1){this.src='logo.jpg';return;}
+               if(this.src.indexOf('logo.jpeg')===-1){this.src='logo.jpeg';return;}
+               if(this.src.indexOf('logo.svg')===-1){this.src='logo.svg';return;}
+               this.style.display='none';" />
       </header>
 
-      <!-- DEBUG LINE: if JS is running, this WILL change -->
-      <div id="status" style="padding:10px 20px; font-weight:700; opacity:.95;">
-        Status: HTML loaded (waiting for JS…)
-      </div>
+      <!-- TOP WEATHER TICKER (combined) -->
+      <section class="tickers" aria-label="Top weather ticker">
+        <div class="ticker-lane weather-top" id="ticker-weather-top">
+          <div class="ticker-label">WEATHER</div>
+          <div class="ticker-window">
+            <div class="ticker-track">
+              <div class="ticker-text" id="ticker-weather-top-text">
+                <span class="wx-shop"><strong>SHOP:</strong> <span id="ticker-shopwx-text">Loading…</span></span>
+                <span class="weather-divider"> ⎮⎮ </span>
+                <span class="wx-jobs"><strong>JOBS:</strong> <span id="ticker-jobwx-text">Loading…</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section class="today-tomorrow">
-        <!-- Put fallback text INSIDE so you can SEE the boxes even if JS fails -->
         <div id="today" class="day-block"><h2>Today</h2><p>(waiting…)</p></div>
         <div id="tomorrow" class="day-block"><h2>Tomorrow</h2><p>(waiting…)</p></div>
       </section>
@@ -42,21 +50,13 @@
         <div id="month-grid" class="month-grid"><p>(waiting…)</p></div>
       </section>
 
-      <!-- TICKERS (replaces the big Notes boxes)
-           JS will fill:
-             #ticker-master-text
-             #ticker-install-text
-             #ticker-shopwx-text  (NEW)
-             #ticker-jobwx-text   (NEW)
-      -->
+      <!-- BOTTOM TICKERS (notes only) -->
       <section class="tickers" aria-label="Bottom tickers">
         <div class="ticker-lane" id="ticker-master" data-doc="master">
           <div class="ticker-label">HILLTOP MASTER</div>
           <div class="ticker-window">
             <div class="ticker-track">
-              <div class="ticker-text" id="ticker-master-text">
-                Loading Hilltop Master notes…
-              </div>
+              <div class="ticker-text" id="ticker-master-text">Loading Hilltop Master notes…</div>
             </div>
           </div>
         </div>
@@ -65,156 +65,14 @@
           <div class="ticker-label">INSTALL NOTES</div>
           <div class="ticker-window">
             <div class="ticker-track">
-              <div class="ticker-text" id="ticker-install-text">
-                Loading Install notes…
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- NEW: SHOP WEATHER ticker lane -->
-        <div class="ticker-lane" id="ticker-shopwx" data-kind="shop">
-          <div class="ticker-label">SHOP WEATHER</div>
-          <div class="ticker-window">
-            <div class="ticker-track">
-              <div class="ticker-text" id="ticker-shopwx-text">
-                SHOP WX: (weather backend not enabled yet)
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- NEW: TODAY JOB WEATHER ticker lane -->
-        <div class="ticker-lane" id="ticker-jobwx" data-kind="jobs">
-          <div class="ticker-label">TODAY JOB WEATHER</div>
-          <div class="ticker-window">
-            <div class="ticker-track">
-              <div class="ticker-text" id="ticker-jobwx-text">
-                JOB WX: (weather backend not enabled yet)
-              </div>
+              <div class="ticker-text" id="ticker-install-text">Loading Install notes…</div>
             </div>
           </div>
         </div>
       </section>
 
-      <script>
-        document.getElementById("status").textContent = "Status: INLINE JS IS RUNNING";
-      </script>
-
-      <script src="app.js?v=999"></script>
-
+      <script src="app.js?v=20260122_1"></script>
     </div>
   </div>
-
-</body>
-</html>
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Hilltop Job Board</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-  <link rel="stylesheet" href="style.css?v=9234" />
-</head>
-
-<body>
-
-  <!-- STAGE = centers the portrait "sign" on any screen (laptop preview or real display) -->
-  <div class="stage">
-    <!-- DASHBOARD = the portrait canvas (your real signage layout lives in here) -->
-    <div class="dashboard">
-
-      <header class="header">
-        <img src="logo.png" alt="Hilltop Signs" class="logo" />
-        <h1>Hilltop Job Board</h1>
-      </header>
-
-      <!-- DEBUG LINE: if JS is running, this WILL change -->
-      <div id="status" style="padding:10px 20px; font-weight:700; opacity:.95;">
-        Status: HTML loaded (waiting for JS…)
-      </div>
-
-      <section class="today-tomorrow">
-        <!-- Put fallback text INSIDE so you can SEE the boxes even if JS fails -->
-        <div id="today" class="day-block"><h2>Today</h2><p>(waiting…)</p></div>
-        <div id="tomorrow" class="day-block"><h2>Tomorrow</h2><p>(waiting…)</p></div>
-      </section>
-
-      <section class="weekly">
-        <h2>This Week</h2>
-        <div id="week-grid" class="week-grid"><p>(waiting…)</p></div>
-      </section>
-
-      <section class="monthly">
-        <h2>This Month</h2>
-        <div id="month-grid" class="month-grid"><p>(waiting…)</p></div>
-      </section>
-
-      <!-- TICKERS (replaces the big Notes boxes)
-           JS will fill:
-             #ticker-master-text
-             #ticker-install-text
-             #ticker-shopwx-text  (NEW)
-             #ticker-jobwx-text   (NEW)
-      -->
-      <section class="tickers" aria-label="Bottom tickers">
-        <div class="ticker-lane" id="ticker-master" data-doc="master">
-          <div class="ticker-label">HILLTOP MASTER</div>
-          <div class="ticker-window">
-            <div class="ticker-track">
-              <div class="ticker-text" id="ticker-master-text">
-                Loading Hilltop Master notes…
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="ticker-lane" id="ticker-install" data-doc="install">
-          <div class="ticker-label">INSTALL NOTES</div>
-          <div class="ticker-window">
-            <div class="ticker-track">
-              <div class="ticker-text" id="ticker-install-text">
-                Loading Install notes…
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- NEW: SHOP WEATHER ticker lane -->
-        <div class="ticker-lane" id="ticker-shopwx" data-kind="shop">
-          <div class="ticker-label">SHOP WEATHER</div>
-          <div class="ticker-window">
-            <div class="ticker-track">
-              <div class="ticker-text" id="ticker-shopwx-text">
-                SHOP WX: (weather backend not enabled yet)
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- NEW: TODAY JOB WEATHER ticker lane -->
-        <div class="ticker-lane" id="ticker-jobwx" data-kind="jobs">
-          <div class="ticker-label">TODAY JOB WEATHER</div>
-          <div class="ticker-window">
-            <div class="ticker-track">
-              <div class="ticker-text" id="ticker-jobwx-text">
-                JOB WX: (weather backend not enabled yet)
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <script>
-        document.getElementById("status").textContent = "Status: INLINE JS IS RUNNING";
-      </script>
-
-      <script src="app.js?v=999"></script>
-
-    </div>
-  </div>
-
 </body>
 </html>
