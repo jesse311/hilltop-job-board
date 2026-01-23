@@ -1,26 +1,3 @@
-Conversation opened. 1 unread message.
-
-Skip to content
-Using Hilltop Signs & Graphics Mail with screen readers
-in:spam 
-
-1 of 8
-(no subject)
-External
-Spam
-Jesse Dean <jessedean77@icloud.com>
-Attachments
-7:41 PM (1 minute ago)
-to me
-
-Why is this message in spam? This message is similar to messages that were identified as spam in the past.
-Report not spam
-
-
-
-Sent from my iPhone
- One attachment
-  •  Scanned by Gmail
 /* =========================================================
    Hilltop Job Board - SIGNAGE SAFE + AUTO REFRESH
    - NO fetch()
@@ -809,5 +786,3 @@ function loadTickers() {
     schedulePageReload();
   });
 })();
-app_fix_weather_loading_top_ticker.txt
-Displaying app_fix_weather_loading_top_ticker.txt.
