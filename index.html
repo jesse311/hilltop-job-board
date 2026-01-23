@@ -4,19 +4,19 @@
   <meta charset="UTF-8" />
   <title>Hilltop Job Board</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="style.css?v=20260122_5" />
+  <link rel="stylesheet" href="style.css?v=20260122_6" />
 </head>
 <body>
   <div class="stage">
     <div class="dashboard">
 
+      <!-- HEADER / LOGO -->
       <header class="header">
-        <img src="logo.png" alt="Hilltop Signs" class="logo"
-             onerror="this.onerror=null;
-               if(this.src.indexOf('logo.jpg')===-1){this.src='logo.jpg';return;}
-               if(this.src.indexOf('logo.jpeg')===-1){this.src='logo.jpeg';return;}
-               if(this.src.indexOf('logo.svg')===-1){this.src='logo.svg';return;}
-               this.style.display='none';" />
+        <img
+          src="hilltop-logo.png"
+          alt="Hilltop Signs"
+          class="logo"
+        />
       </header>
 
       <!-- TOP WEATHER TICKER (combined) -->
@@ -26,37 +26,50 @@
           <div class="ticker-window">
             <div class="ticker-track">
               <div class="ticker-text" id="ticker-weather-top-text">
-                <span class="wx-shop"><strong>SHOP:</strong> <span id="ticker-shopwx-text">Loading…</span></span>
-                <span class="weather-divider"> ⎮⎮ </span>
-                <span class="wx-jobs"><strong>JOBS:</strong> <span id="ticker-jobwx-text">Loading…</span></span>
+                Loading weather…
               </div>
             </div>
           </div>
         </div>
       </section>
 
+      <!-- TODAY / TOMORROW -->
       <section class="today-tomorrow">
-        <div id="today" class="day-block"><h2>Today</h2><p>(waiting…)</p></div>
-        <div id="tomorrow" class="day-block"><h2>Tomorrow</h2><p>(waiting…)</p></div>
+        <div id="today" class="day-block">
+          <h2>Today</h2>
+          <p>(waiting…)</p>
+        </div>
+        <div id="tomorrow" class="day-block">
+          <h2>Tomorrow</h2>
+          <p>(waiting…)</p>
+        </div>
       </section>
 
+      <!-- THIS WEEK -->
       <section class="weekly">
         <h2>This Week</h2>
-        <div id="week-grid" class="week-grid"><p>(waiting…)</p></div>
+        <div id="week-grid" class="week-grid">
+          <p>(waiting…)</p>
+        </div>
       </section>
 
+      <!-- THIS MONTH -->
       <section class="monthly">
         <h2>This Month</h2>
-        <div id="month-grid" class="month-grid"><p>(waiting…)</p></div>
+        <div id="month-grid" class="month-grid">
+          <p>(waiting…)</p>
+        </div>
       </section>
 
-      <!-- BOTTOM TICKERS (notes only) -->
+      <!-- BOTTOM TICKERS -->
       <section class="tickers" aria-label="Bottom tickers">
         <div class="ticker-lane" id="ticker-master" data-doc="master">
           <div class="ticker-label">HILLTOP MASTER</div>
           <div class="ticker-window">
             <div class="ticker-track">
-              <div class="ticker-text" id="ticker-master-text">Loading Hilltop Master notes…</div>
+              <div class="ticker-text" id="ticker-master-text">
+                Loading Hilltop Master notes…
+              </div>
             </div>
           </div>
         </div>
@@ -65,13 +78,17 @@
           <div class="ticker-label">INSTALL NOTES</div>
           <div class="ticker-window">
             <div class="ticker-track">
-              <div class="ticker-text" id="ticker-install-text">Loading Install notes…</div>
+              <div class="ticker-text" id="ticker-install-text">
+                Loading Install notes…
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <script src="app.js?v=20260122_1"></script>
+      <!-- APP -->
+      <script src="app.js?v=20260122_2"></script>
+
     </div>
   </div>
 </body>
