@@ -1,4 +1,5 @@
 
+
 /* ===== Fullscreen Signage Layout (fills whatever the device gives us) ===== */
 :root{
   /* Use clamp() so it scales on TV vs laptop */
@@ -300,4 +301,25 @@ h2{
 
 .wx-val{
   opacity: 0.96;
+}
+
+
+/* =========================================================
+   HEADER RESTORATION (LOGO ONLY)
+   Purpose: Reserve vertical space for logo without
+   affecting layout, boxes, or auto-scaling text.
+   Added safely for signage + Tizen.
+========================================================= */
+
+.header{
+  flex: 0 0 auto;          /* ensure header is never collapsed */
+  min-height: 72px;        /* guaranteed space for logo */
+  z-index: 20;             /* stay above background panels */
+}
+
+.logo{
+  display: block;          /* Tizen-safe rendering */
+  height: 60px;            /* matches existing intent */
+  width: auto;
+  max-width: 260px;
 }
