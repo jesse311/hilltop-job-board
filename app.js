@@ -1,4 +1,5 @@
 
+
 /* =========================================================
    Hilltop Job Board - SIGNAGE SAFE + AUTO REFRESH
    - NO fetch()
@@ -460,6 +461,102 @@
   //   { ok:true, text:"..." }
   //   { ok:true, kind:"shop", weather:{ temp_f:38, wind_mph:12, wind_dir:"NW", pop_pct:60 }, place:"Shop" }
   // =========================================================
+
+  // ---------------------------------------------------------
+  // COMBINED TOP WEATHER TICKER SUPPORT
+  // HTML (index.html) has a single lane:
+  //   lane: #ticker-weather-top
+  //   text: #ticker-weather-top-text
+  // This lane should display BOTH shop + jobs in one scroller.
+  // ---------------------------------------------------------
+  function getWeatherTopTargets() {
+    var lane = $("ticker-weather-top");
+    var textEl = $("ticker-weather-top-text");
+    if (!lane || !textEl) return null;
+    return { laneId: "ticker-weather-top", textEl: textEl };
+  }
+
+  var _wxTopCache = { shop: null, jobs: null };
+
+  function formatWeatherTopCombined(shopData, jobsData) {
+    // Keep it simple + signage-safe (plain text).
+    var shopLine = formatWeatherLine("shop", shopData);
+    var jobsLine = formatWeatherLine("jobs", jobsData);
+
+    // If backend returns SHOP WX / JOB WX prefixes, keep them.
+    // Otherwise, add clear labels.
+    if (shopLine && shopLine.indexOf("SHOP") !== 0) shopLine = "SHOP: " + shopLine;
+    if (jobsLine && jobsLine.indexOf("JOB") !== 0 && jobsLine.indexOf("JOBS") !== 0) jobsLine = "JOBS: " + jobsLine;
+
+    return shopLine + "  ⎮⎮  " + jobsLine;
+  }
+
+  function loadWeatherTopCombined() {
+    if (!CONFIG.weatherTickersEnabled) return;
+
+    var t = getWeatherTopTargets();
+    if (!t) return;
+
+    var base = CONFIG.proxyUrl.replace(/\/$/, "");
+    var urlShop = base + "?mode=weather&kind=shop";
+    var urlJobs = base + "?mode=weather&kind=jobs";
+
+    // We fetch both, then render once so it doesn't "blink".
+    jsonp(
+      urlShop,
+      function (shopData) {
+        // If the shop call fails logically, keep last known good.
+        if (shopData && shopData.ok === true) _wxTopCache.shop = shopData;
+
+        jsonp(
+          urlJobs,
+          function (jobsData) {
+            if (jobsData && jobsData.ok === true) _wxTopCache.jobs = jobsData;
+
+            // Build combined text from whatever we have (new or cached).
+            var combined = formatWeatherTopCombined(_wxTopCache.shop, _wxTopCache.jobs);
+
+            var oldText = String(t.textEl.getAttribute("data-last") || "");
+            t.textEl.setAttribute("data-last", combined);
+
+            if (combined !== oldText) {
+              // IMPORTANT: make the ticker element plain text before animation duplicates it
+              t.textEl.textContent = combined;
+              startTicker(t.laneId, t.textEl);
+            } else {
+              if (!_tickerAnimations[t.laneId]) startTicker(t.laneId, t.textEl);
+            }
+          },
+          function (err2) {
+            // Jobs JSONP failed; still try to render cached.
+            var combined2 = formatWeatherTopCombined(_wxTopCache.shop, _wxTopCache.jobs);
+            t.textEl.textContent = combined2 || ("WEATHER: " + (err2 && err2.message ? err2.message : "failed"));
+            startTicker(t.laneId, t.textEl);
+          }
+        );
+      },
+      function (err1) {
+        // Shop JSONP failed; still try jobs (and/or cached).
+        jsonp(
+          urlJobs,
+          function (jobsData2) {
+            if (jobsData2 && jobsData2.ok === true) _wxTopCache.jobs = jobsData2;
+
+            var combined3 = formatWeatherTopCombined(_wxTopCache.shop, _wxTopCache.jobs);
+            t.textEl.textContent = combined3 || ("WEATHER: " + (err1 && err1.message ? err1.message : "failed"));
+            startTicker(t.laneId, t.textEl);
+          },
+          function (err3) {
+            var msg = "WEATHER: " + ((err1 && err1.message) ? err1.message : "failed");
+            if (err3 && err3.message) msg += " / " + err3.message;
+            t.textEl.textContent = msg;
+            stopTicker(t.laneId);
+          }
+        );
+      }
+    );
+  }
+
   function degToCardinal(deg) {
     if (deg === null || deg === undefined || isNaN(Number(deg))) return "";
     var dirs = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
@@ -548,8 +645,15 @@
   function loadTickers() {
     loadTicker("master");
     loadTicker("install");
-    loadWeatherTicker("shop");
-    loadWeatherTicker("jobs");
+
+    // If the new combined top weather lane exists, drive that.
+    // Otherwise, fall back to the older per-lane weather tickers (if present).
+    if (getWeatherTopTargets()) {
+      loadWeatherTopCombined();
+    } else {
+      loadWeatherTicker("shop");
+      loadWeatherTicker("jobs");
+    }
   }
 
   function restartTickers() {
@@ -564,7 +668,12 @@
       var jobsT = getWeatherTickerTargets("jobs");
       if (shopT && shopT.textEl) { stopTicker(shopT.laneId); startTicker(shopT.laneId, shopT.textEl); }
       if (jobsT && jobsT.textEl) { stopTicker(jobsT.laneId); startTicker(jobsT.laneId, jobsT.textEl); }
-    }
+
+    // Combined top weather lane (if present)
+    var topT = getWeatherTopTargets();
+    if (topT && topT.textEl) { stopTicker(topT.laneId); startTicker(topT.laneId, topT.textEl); }
+
+  }
   }
 
   // =========================================================
