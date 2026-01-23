@@ -1,4 +1,26 @@
+Conversation opened. 1 unread message.
 
+Skip to content
+Using Hilltop Signs & Graphics Mail with screen readers
+in:spam 
+
+1 of 8
+(no subject)
+External
+Spam
+Jesse Dean <jessedean77@icloud.com>
+Attachments
+7:41 PM (1 minute ago)
+to me
+
+Why is this message in spam? This message is similar to messages that were identified as spam in the past.
+Report not spam
+
+
+
+Sent from my iPhone
+ One attachment
+  •  Scanned by Gmail
 /* =========================================================
    Hilltop Job Board - SIGNAGE SAFE + AUTO REFRESH
    - NO fetch()
@@ -11,7 +33,16 @@
        - Full page reload (anti-freeze / anti-cache)
 ========================================================= */
 
-(function () {
+(
+// Update ALL elements that share an id (ticker text is sometimes duplicated for marquee scrolling)
+function setAllIdText(id, text) {
+  document.querySelectorAll('[id="' + id + '"]').forEach(function(el){
+    if (!el) return;
+    el.textContent = text;
+  });
+}
+
+function () {
   // ===== CONFIG =====
   var CONFIG = {
     proxyUrl: "https://script.google.com/macros/s/AKfycbxspDG4qJhwKLXdxxvAMrkXaIJyj4Fpbhju8cCZtkn9pHnPp4DgP660LeIdpJARw2lU/exec",
@@ -263,6 +294,7 @@
       var d = days[i];
       var label = d.toLocaleDateString([], { weekday: "short" });
       var mmdd = d.toLocaleDateString([], { month: "numeric", day: "numeric" });
+      var isToday = sameDay(startOfDay(now), d);
 
       var items = byDay[d.toDateString()] || [];
       items.sort(function (a, b) { return a._start - b._start; });
@@ -280,7 +312,7 @@
       }
 
       cards.push(
-        '<div class="week-card fit-week">' +
+        '<div class="week-card fit-week' + (isToday ? ' today' : '') + '">' +
           '<div class="week-card-title">' + label + ' <span class="muted">' + mmdd + "</span></div>" +
           '<div class="week-card-body fit-text">' + body.join("<br>") + "</div>" +
         "</div>"
@@ -777,3 +809,5 @@ function loadTickers() {
     schedulePageReload();
   });
 })();
+app_fix_weather_loading_top_ticker.txt
+Displaying app_fix_weather_loading_top_ticker.txt.
