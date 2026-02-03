@@ -24,6 +24,7 @@
 
     // Refresh rates (ms)
     tickerRefreshMs: 2 * 60 * 1000,   // tickers update every 2 min
+    truckRefreshMs: 30 * 1000,     // truck status update every 30 sec
     calendarRefreshMs: 2 * 60 * 1000, // calendar update every 2 min
     pageReloadMs: 10 * 60 * 1000,     // full page reload every 10 min
 
@@ -115,7 +116,71 @@
     document.head.appendChild(script);
   }
 
+  
   // =========================================================
+  // TRUCK STATUS (RADAR via Proxy)
+  // =========================================================
+  function renderTruckPanel(data){
+    var body = document.getElementById("truckPanelBody");
+    if (!body) return;
+
+    if (!data || data.ok !== true || !data.trucks || !data.trucks.length){
+      body.innerHTML = '<div class="truck-row"><div class="truck-left"><div class="truck-name">No active trucks</div><div class="truck-reason">—</div></div><div class="truck-badge">—</div></div>';
+      return;
+    }
+
+    // sort by sortOrder then displayName
+    data.trucks.sort(function(a,b){
+      var ao = (a.sortOrder !== undefined && a.sortOrder !== null) ? Number(a.sortOrder) : 999999;
+      var bo = (b.sortOrder !== undefined && b.sortOrder !== null) ? Number(b.sortOrder) : 999999;
+      if (ao !== bo) return ao - bo;
+      var an = (a.displayName || a.truckId || "");
+      var bn = (b.displayName || b.truckId || "");
+      return an.localeCompare(bn);
+    });
+
+    var html = "";
+    for (var i=0; i<data.trucks.length; i++){
+      var t = data.trucks[i] || {};
+      var name = (t.displayName || t.truckId || "TRUCK");
+      var state = String(t.state || "GREEN").toUpperCase();
+      var cls = "truck-green";
+      if (state === "RED") cls = "truck-red";
+      else if (state === "YELLOW") cls = "truck-yellow";
+
+      var reason = "";
+      if (state !== "GREEN"){
+        reason = t.primaryReason || (t.reasons && t.reasons.length ? t.reasons[0] : "");
+        // if multiple reasons, show +N more
+        var extra = (t.reasons && t.reasons.length) ? (t.reasons.length - (reason ? 1 : 0)) : 0;
+        if (extra > 0) reason = reason + "  (+" + extra + " more)";
+      }
+
+      html += '<div class="truck-row">' +
+                '<div class="truck-left">' +
+                  '<div class="truck-name">' + escapeHtml_(name) + '</div>' +
+                  '<div class="truck-reason">' + (reason ? escapeHtml_(reason) : "Ready") + '</div>' +
+                '</div>' +
+                '<div class="truck-badge ' + cls + '">' + escapeHtml_(state) + '</div>' +
+              '</div>';
+    }
+    body.innerHTML = html;
+  }
+
+  function loadTruckStatus(){
+    var url = CONFIG.proxyUrl + "?mode=truckStatus";
+    jsonp(url, function(data){
+      renderTruckPanel(data);
+    }, function(){
+      // keep last known state; if empty, show error
+      var body = document.getElementById("truckPanelBody");
+      if (body && !body.innerHTML){
+        body.innerHTML = '<div class="truck-row"><div class="truck-left"><div class="truck-name">Truck status</div><div class="truck-reason">Proxy error</div></div><div class="truck-badge">—</div></div>';
+      }
+    });
+  }
+
+// =========================================================
   // AUTO-FIT (NO CUTOFFS)
   // =========================================================
   function _fitsBox(box) {
@@ -760,9 +825,11 @@
 
     loadCalendar();
     loadTickers();
+    loadTruckStatus();
 
     setInterval(loadCalendar, CONFIG.calendarRefreshMs);
     setInterval(loadTickers, CONFIG.tickerRefreshMs);
+    setInterval(loadTruckStatus, CONFIG.truckRefreshMs);
 
     // One extra fit after fonts settle
     setTimeout(function () {
@@ -772,4 +839,10 @@
 
     schedulePageReload();
   });
-})();
+})()
+  function escapeHtml_(s){
+    s = String(s === undefined || s === null ? "" : s);
+    return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+  }
+
+;
